@@ -6,7 +6,7 @@
  * start of the file depending on the left-to-right order objects are passed
  * to ld.
  */
-.section .text
+.section .init
 
 // TODO where should i put these .global directives?
 .global asm_entry
