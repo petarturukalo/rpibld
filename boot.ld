@@ -9,10 +9,11 @@ SECTIONS
 	 * 32-bit "kernels" (binaries, since this bootloader program is replacing the kernel) 
 	 * are loaded to address 0x8000 by default. We don't really need to specify in this script
 	 * that the program should be loaded to 0x8000, since the third stage bootloader start4.elf
-	 * already knows, and the information is lost after objcopy conversion from elf to binary.
-	 * But specify it anyway so that an objdump on the elf file shows an address starting at 0x8000,
+	 * already knows, and the 0x8000 start address information is lost after objcopy conversion from 
+	 * elf to binary, replaced with relative addresses.
+	 * But specify it anyway so that an objdump on the elf file shows addresses starting at 0x8000,
 	 * since it's more helpful for debugging purposes to see the addresses that will be used at execution
-	 * time rather than those relative to an arbitrary starting address of 0.
+	 * time rather than relative addresses.
 	 */
 	.init 0x8000 : { *(.init) }
 	.text : { *(.text) }
