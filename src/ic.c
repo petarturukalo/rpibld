@@ -43,17 +43,7 @@ void ic_enable_interrupts(void)
 	/*register_set(&armc_access, IRQ0_SET_EN_2, 1<<8);*/
 }
 
-/*
- * TODO is there a reason this needs to be different for gic? if
- *	not might be worth moving this to a shared location, unless
- *	i just get rid of all of the gic code
- */
-enum ic_irq {
-	IRQ_UNIMPLEMENTED,
-	IRQ_VC_TIMER1
-};
-
-static enum ic_irq get_irq_source(void)
+static enum irq get_irq_source(void)
 {
 	/* 
 	 * Refer 'Figure 9. Legacy IRQ status registers' from section '6.4 Legacy 
@@ -70,7 +60,7 @@ static enum ic_irq get_irq_source(void)
 
 void ic_irq_exception_handler(void)
 {
-	enum ic_irq irq = get_irq_source();
+	enum irq irq = get_irq_source();
 
 	switch (irq) {
 		case IRQ_VC_TIMER1:

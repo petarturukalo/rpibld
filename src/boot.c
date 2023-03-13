@@ -15,17 +15,13 @@ void c_entry(void)
 	enable_interrupts();
 	/*gic_init();*/
 	ic_enable_interrupts();
+	sleep(1000);
 	led_init();
-	sleep(1000);
-	led_turn_on();
-	sleep(1000);
-	led_turn_off();
-	sleep(1000);
-	led_turn_on();
-	sleep(3000);
-	led_turn_off();
-	sleep(1000);
-	led_turn_on();
-	sleep(1000);
-	led_turn_off();
+	for (int i = 0; ; ++i) {
+		if (i%2 == 0) 
+			led_turn_on();
+		else
+			led_turn_off();
+		sleep(1000);
+	}
 }

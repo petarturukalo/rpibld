@@ -3,6 +3,23 @@
 #include "led.h"// TODO rm
 #include "debug.h"// TODO rm
 
+/*
+ * Timer channels 0 and 2 are supposedly used by the VPU so only
+ * 1 and 3 should be used here. I say supposedly because I couldn't
+ * find it mentioned in any technical documentation (e.g. the BCM2711 
+ * datasheet), but it's mentioned elsewhere online, and when testing 
+ * I found that the compare registers for channels 0 and 2 reset to 
+ * non-zero values, while channels 1 and 3 reset to zeroed values.
+ */
+enum timer_registers {
+	CS,
+	CLO,
+	C0,
+	C1,
+	C2,
+	C3
+};
+
 struct periph_access timer_access = {
 	.periph_base_off = 0x2003000,
 	.register_offsets = {

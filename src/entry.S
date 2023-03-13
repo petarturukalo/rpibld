@@ -21,12 +21,12 @@
 .equ IRQ_STACK_START_ADDR, 0x07000000  /* ~117 MB. */
 .equ SVC_STACK_START_ADDR, 0x10000000  /* ~268 MB. */
 
-/* The first 5 bits of the CPSR register, bits 4:0, is the mode field. */
-.equ CPSR_MODE_BITS, 0b11111  /* All high bits here make up the mode field. */
+/* The first 5 bits of the CPSR register, bits 4:0, make up the mode field. */
+.equ CPSR_MODE_BITS, 0b11111
 .equ CPSR_IRQ_MODE,  0b10010
 .equ CPSR_SVC_MODE,  0b10011
 
-/* Offset to exception handler vectors from start of memory. */
+/* Offset to exception handler vectors from very start of memory. */
 .equ IRQ_VECTOR_OFFSET, 0x18
 .equ FIQ_VECTOR_OFFSET, 0x1c
 
@@ -37,24 +37,23 @@ asm_entry:
 	 * All other cores are left idle.
 	 * TODO why, does it ruin setting registers?
 	 * TODO can't get another core with CPU ID > 0 to run and call c_entry,
-	 *	are they not booting anyway? TODO try now out of hypervisor mode?
+	 *	are they put in a spin loop by the firmware? 
+	 * TODO either enable this if certain it's needed or remove it
 	 */
-	mrc p15, 0, r0, c0, c0, 5  /* Read multiprocessor affinity register into r0. */
-	// TODO fix up this constant?
-	ands r0, r0, #0b11  /* Compare on CPU ID field. */
-	bne loop
+	//mrc p15, 0, r0, c0, c0, 5  /* Read multiprocessor affinity register into r0. */
+	//ands r0, r0, #0b11  /* Compare on CPU ID field. */
+	//bne loop
 
 	/*
 	 * Switch from hypervisor mode (the mode that was booted into) to supervisor (SVC) mode. 
 	 * If this isn't done then the IRQ exception is handled in hypervisor mode when it should
 	 * be handled in IRQ mode.
-	 * TODO should this be before the above setting the cores idle?
 	 */
 	mrs r0, cpsr
 	bic r0, #CPSR_MODE_BITS  /* Zero mode bits. */
 	mov r1, r0
 	orr r1, #CPSR_SVC_MODE  /* Set mode to supervisor. */
-	msr spsr_hyp, r1  // TODO does this _hyp suffix do what i think it does?
+	msr spsr_hyp, r1
 	/* 
 	 * The program counter is 8 bytes ahead of the current instruction, so this 
 	 * will have supervisor mode execution continue at the instruction directly 
@@ -93,7 +92,6 @@ asm_entry:
 	 * a program counter relative address, expecting the operand to be 4 bytes after the instruction itself,
 	 * so make sure to copy this dependency to 4 bytes after the IRQ exception vector.
 	 * This will overwrite the FIQ exception vector, but that's okay because we won't be using any FIQs.
-	 * TODO use a mult instruction instead of two stores?
 	 */
 	ldr r0, addr_irq_exception_handler
 	ldr r1, =FIQ_VECTOR_OFFSET

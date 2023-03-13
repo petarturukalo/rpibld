@@ -4,6 +4,11 @@
 #ifndef INT_H
 #define INT_H
 
+enum irq {
+	IRQ_UNIMPLEMENTED,
+	IRQ_VC_TIMER1
+};
+
 /*
  * Clear/set the I bit (bit 7) of the CPSR register to enable/disable interrupts.
  */

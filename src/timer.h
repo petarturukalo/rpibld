@@ -13,26 +13,6 @@
 #ifndef TIMER_H
 #define TIMER_H
 
-// TODO mv back to .c
-/*
- * Timer channels 0 and 2 are supposedly used by the VPU so only
- * 1 and 3 should be used here. I say supposedly because I couldn't
- * find it mentioned in any technical documentation (e.g. the BCM2711 
- * datasheet), but it's mentioned elsewhere online, and when testing 
- * I found that the compare registers for channels 0 and 2 reset to 
- * non-zero values, while channels 1 and 3 reset to zeroed values.
- */
-enum timer_registers {
-	CS,
-	CLO,
-	C0,
-	C1,
-	C2,
-	C3
-};
-// TODO rm
-extern struct periph_access timer_access;
-
 /*
  * Queue an interrupt request on system timer channel 1 to trigger at a 
  * milliseconds amount of time after the current time. 
@@ -53,8 +33,6 @@ void timer_isr(void);
 
 /*
  * Pause the CPU, putting it in an idle state for milliseconds amount of time.
- * TODO hide the implementation details of this by moving everything but this to the .c
- *	file, or just move this fn to a different file
  */
 void sleep(int milliseconds);
 
