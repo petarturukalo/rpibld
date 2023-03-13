@@ -8,6 +8,16 @@
  */
 .section .init
 
+/*
+ * The addresses that the IRQ and supervisor (SVC) mode stacks start at.
+ * Because the stacks grow downwards they are set to reasonably high addresses to 
+ * avoid running into this program (this program is loaded to address 0x8000), and 
+ * to separate addresses to avoid running into each other. They are also 4-byte
+ * aligned as they won't work if not 4-byte aligned.
+ */
+.equ IRQ_STACK_START_ADDR, 0x07000000   /* ~117 MB. */
+.equ SVC_STACK_START_ADDR, 0x10000000  /* ~268 MB. */
+
 // TODO does ARM asm allow constants like CONSTANT=3000
 // TODO replace constants like 0x18, 0x1c, 0x1000...
 .global c_entry
@@ -50,23 +60,20 @@ asm_entry:
 	 * level 2 (PL2) hypervisor mode we can freely switch between the PL1 modes.
 	 *
 	 * Set up the stacks for use by the C code. Separate stacks are required for both
-	 * IRQ mode and supervisor mode. Because the stacks grow downwards they are set to 
-	 * reasonably high addresses to avoid running into this program (this program is loaded 
-	 * to address 0x8000). The stacks are also set to separate addresses from each other.
+	 * IRQ mode and supervisor mode. 
 	 *
 	 * First the IRQ mode stack is set.
-	 * TODO pick better stack addresses?
 	 */
 	mov r1, r0
 	orr r1, #0x12  /* Set mode to IRQ. */
 	msr cpsr, r1
-	mov sp, #0x1000000
+	mov sp, #IRQ_STACK_START_ADDR
 	
 	/* Set the supervisor mode stack. */
 	mov r1, r0
 	orr r1, #0x13  /* Set mode back to supervisor. */
 	msr cpsr, r1
-	mov sp, #0x10000000
+	mov sp, #SVC_STACK_START_ADDR
 
 	/*
 	 * Set the exception handler vector for the IRQ exception in the vector table
