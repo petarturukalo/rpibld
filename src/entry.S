@@ -8,6 +8,9 @@
  */
 .section .init
 
+.global c_entry
+.global ic_irq_exception_handler
+
 /*
  * The addresses that the IRQ and supervisor (SVC) mode stacks start at.
  * Because the stacks grow downwards they are set to reasonably high addresses to 
@@ -15,13 +18,17 @@
  * to separate addresses to avoid running into each other. They are also 4-byte
  * aligned as they won't work if not 4-byte aligned.
  */
-.equ IRQ_STACK_START_ADDR, 0x07000000   /* ~117 MB. */
+.equ IRQ_STACK_START_ADDR, 0x07000000  /* ~117 MB. */
 .equ SVC_STACK_START_ADDR, 0x10000000  /* ~268 MB. */
 
-// TODO does ARM asm allow constants like CONSTANT=3000
-// TODO replace constants like 0x18, 0x1c, 0x1000...
-.global c_entry
-.global ic_irq_exception_handler
+/* The first 5 bits of the CPSR register, bits 4:0, is the mode field. */
+.equ CPSR_MODE_BITS, 0b11111  /* All high bits here make up the mode field. */
+.equ CPSR_IRQ_MODE,  0b10010
+.equ CPSR_SVC_MODE,  0b10011
+
+/* Offset to exception handler vectors from start of memory. */
+.equ IRQ_VECTOR_OFFSET, 0x18
+.equ FIQ_VECTOR_OFFSET, 0x1c
 
 .global asm_entry
 asm_entry:
@@ -33,6 +40,7 @@ asm_entry:
 	 *	are they not booting anyway? TODO try now out of hypervisor mode?
 	 */
 	mrc p15, 0, r0, c0, c0, 5  /* Read multiprocessor affinity register into r0. */
+	// TODO fix up this constant?
 	ands r0, r0, #0b11  /* Compare on CPU ID field. */
 	bne loop
 
@@ -43,9 +51,9 @@ asm_entry:
 	 * TODO should this be before the above setting the cores idle?
 	 */
 	mrs r0, cpsr
-	bic r0, #0x1f  /* Zero mode bits 4:0. */
+	bic r0, #CPSR_MODE_BITS  /* Zero mode bits. */
 	mov r1, r0
-	orr r1, #0x13  /* Set mode to supervisor. */
+	orr r1, #CPSR_SVC_MODE  /* Set mode to supervisor. */
 	msr spsr_hyp, r1  // TODO does this _hyp suffix do what i think it does?
 	/* 
 	 * The program counter is 8 bytes ahead of the current instruction, so this 
@@ -60,18 +68,16 @@ asm_entry:
 	 * level 2 (PL2) hypervisor mode we can freely switch between the PL1 modes.
 	 *
 	 * Set up the stacks for use by the C code. Separate stacks are required for both
-	 * IRQ mode and supervisor mode. 
-	 *
-	 * First the IRQ mode stack is set.
+	 * IRQ mode and supervisor mode. First the IRQ mode stack is set.
 	 */
 	mov r1, r0
-	orr r1, #0x12  /* Set mode to IRQ. */
+	orr r1, #CPSR_IRQ_MODE  /* Set mode to IRQ. */
 	msr cpsr, r1
 	mov sp, #IRQ_STACK_START_ADDR
 	
 	/* Set the supervisor mode stack. */
 	mov r1, r0
-	orr r1, #0x13  /* Set mode back to supervisor. */
+	orr r1, #CPSR_SVC_MODE  /* Set mode back to supervisor. */
 	msr cpsr, r1
 	mov sp, #SVC_STACK_START_ADDR
 
@@ -80,7 +86,7 @@ asm_entry:
 	 * to an instruction that will branch to irq_exception_handler.
 	 */
 	ldr r0, irq_exception_vector
-	ldr r1, =0x18  /* 0x18 is offset of IRQ exception handler vector from start of memory. */
+	ldr r1, =IRQ_VECTOR_OFFSET
 	str r0, [r1]
 	/*
 	 * After assembly the instruction at irq_exception_vector will have its label operand replaced with
@@ -90,7 +96,7 @@ asm_entry:
 	 * TODO use a mult instruction instead of two stores?
 	 */
 	ldr r0, addr_irq_exception_handler
-	ldr r1, =0x1c
+	ldr r1, =FIQ_VECTOR_OFFSET
 	str r0, [r1]
 
 	bl c_entry
