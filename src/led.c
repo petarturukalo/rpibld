@@ -5,22 +5,36 @@
 #include "led.h"
 #include "mmio.h"
 
-// TODO is init needed before switching between turning on or off or is it only needed once?
+enum gpio_registers {
+	GPFSEL4,
+	GPSET1,
+	GPCLR1
+};
+
+struct periph_access gpio_access = {
+	.periph_base_off = 0x2200000,
+	.register_offsets = {
+		[GPFSEL4] = 0x10,
+		[GPSET1]  = 0x20,
+		[GPCLR1]  = 0x2c
+	}
+};
+
 void led_init(void)
 {
 	/* Set bits 8:6 of the GPFSEL4 register to 001, selecting pin 42 to be an output. */
-	register_set(PERIPH_BASE_OFF_GPIO, REG_OFF_GPIO_GPFSEL4, 1<<6);
+	register_set(&gpio_access, GPFSEL4, 1<<6);
 }
 
 void led_turn_on(void)
 {
 	 /* Set the value of pin 42 to 1. Because the pin is active high this will turn on the LED. */
-	register_set(PERIPH_BASE_OFF_GPIO, REG_OFF_GPIO_GPSET1, 1<<10);
+	register_set(&gpio_access, GPSET1, 1<<10);
 }
 
 void led_turn_off(void) 
 {
 	/* Set the value of pin 42 to 0. */
-	register_set(PERIPH_BASE_OFF_GPIO, REG_OFF_GPIO_GPCLR1, 1<<10);
+	register_set(&gpio_access, GPCLR1, 1<<10);
 }
 

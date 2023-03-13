@@ -5,7 +5,7 @@ objs+=$(patsubst src/%.c, build/%.o, $(wildcard src/*.c))
 # by setting this to blank?
 cross_prefix=arm-none-eabi
 linker_script=boot.ld
-CFLAGS=-nostdlib -r
+CFLAGS=-nostdlib -r -march=armv7-a
 LDFLAGS=-T $(linker_script)
 
 bootloader: build/bootloader.elf
@@ -22,3 +22,11 @@ build/%.o: src/%.c
 
 clean:
 	rm build/* bootloader
+
+# TODO rm install and uninstall - just used to automate testing
+install:
+	sudo cp -v bootloader mnt-boot/kernel7l.img
+
+uninstall:
+	sudo rm -v mnt-boot/kernel7l.img
+
