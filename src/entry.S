@@ -132,5 +132,4 @@ irq_exception_vector:
 	ldr pc, addr_irq_exception_handler
 
 addr_irq_exception_handler: .word irq_exception_handler
-	// TODO need to set up/zero-init other sections like .bss? maybe when they're added
 

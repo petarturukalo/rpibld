@@ -4,8 +4,7 @@
 #ifndef MMIO_H
 #define MMIO_H
 
-typedef int word_t;
-typedef char byte_t;
+#include "type.h"
 
 /*
  * Offsets for accessing a peripheral's memory-mapped registers.

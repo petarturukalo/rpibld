@@ -40,6 +40,7 @@ void ic_enable_interrupts(void)
 	/* Enable system timer channel 1. */
 	register_set(&armc_access, IRQ0_SET_EN_0, 1<<1);
 	/* Enable software-triggered interrupt 0. */
+	// TODO #ifdef DEBUG?
 	/*register_set(&armc_access, IRQ0_SET_EN_2, 1<<8);*/
 }
 

@@ -1,6 +1,5 @@
 #include "int.h"
 
-// TODO inline?
 void enable_interrupts(void)
 {
 	// TODO does this need to be volatile?
