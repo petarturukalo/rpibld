@@ -1,8 +1,6 @@
 #include "timer.h"
 #include "mmio.h"
 #include "type.h"
-#include "led.h"// TODO rm
-#include "debug.h"// TODO rm
 
 /*
  * Timer channels 0 and 2 are supposedly used by the VPU so only
@@ -21,7 +19,7 @@ enum timer_registers {
 	C3
 };
 
-struct periph_access timer_access = {
+static struct periph_access timer_access = {
 	.periph_base_off = 0x2003000,
 	.register_offsets = {
 		[CS]  = 0x00,

@@ -12,7 +12,7 @@ enum gic400_distributor_registers {
  * The offset for the GIC-400 is 0x3840000, with the distributor and CPU interface
  * blocks being +0x1000 and +0x2000 after that.
  */
-struct periph_access gic400_distributor_access = {
+static struct periph_access gic400_distributor_access = {
 	.periph_base_off = 0x3841000,
 	.register_offsets = {
 		[GICD_CTLR]       = 0x0000,
@@ -26,7 +26,7 @@ enum gic400_cpu_interface_registers {
 	GICC_CTLR
 };
 
-struct periph_access gic400_cpu_interface_access = {
+static struct periph_access gic400_cpu_interface_access = {
 	.periph_base_off = 0x3842000,
 	.register_offsets = {
 		[GICC_CTLR] = 0x0000

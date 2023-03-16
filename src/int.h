@@ -6,7 +6,8 @@
 
 enum irq {
 	IRQ_UNIMPLEMENTED,
-	IRQ_VC_TIMER1
+	IRQ_VC_TIMER1,
+	IRQ_VC_MMC
 };
 
 /*

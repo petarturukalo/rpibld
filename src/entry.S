@@ -39,6 +39,7 @@ asm_entry:
 	 * TODO can't get another core with CPU ID > 0 to run and call c_entry,
 	 *	are they put in a spin loop by the firmware? 
 	 * TODO either enable this if certain it's needed or remove it
+	 * TODO if removed comment assumption made about cores here
 	 */
 	//mrc p15, 0, r0, c0, c0, 5  /* Read multiprocessor affinity register into r0. */
 	//ands r0, r0, #0b11  /* Compare on CPU ID field. */

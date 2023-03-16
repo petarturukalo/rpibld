@@ -11,7 +11,7 @@ enum gpio_registers {
 	GPCLR1
 };
 
-struct periph_access gpio_access = {
+static struct periph_access gpio_access = {
 	.periph_base_off = 0x2200000,
 	.register_offsets = {
 		[GPFSEL4] = 0x10,
