@@ -11,7 +11,7 @@ enum gpio_registers {
 	GPCLR1
 };
 
-static struct periph_access gpio_access = {
+struct periph_access gpio_access = {
 	.periph_base_off = 0x2200000,
 	.register_offsets = {
 		[GPFSEL4] = 0x10,
@@ -23,7 +23,7 @@ static struct periph_access gpio_access = {
 void led_init(void)
 {
 	/* Set bits 8:6 of the GPFSEL4 register to 001, selecting pin 42 to be an output. */
-	register_set(&gpio_access, GPFSEL4, 1<<6);
+	register_enable_bits(&gpio_access, GPFSEL4, 1<<6);
 }
 
 void led_turn_on(void)

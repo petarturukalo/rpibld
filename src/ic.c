@@ -2,6 +2,7 @@
 #include "mmio.h"
 #include "timer.h"
 #include "int.h"
+#include "error.h" // TODO rm
 
 enum arm_local_registers {
 	IRQ_SOURCE0
@@ -37,6 +38,7 @@ static struct periph_access armc_access = {
 	}
 };
 
+// TODO have the peripheral register its interrupt in its init code? maybe not
 void ic_enable_interrupts(void)
 {
 	/* Enable system timer channel 1, VC interrupt 1. */
@@ -60,6 +62,8 @@ static enum irq get_irq_source(void)
 	if (register_get(&arm_local_access, IRQ_SOURCE0)&1<<8) {
 		word_t pending2 = register_get(&armc_access, IRQ0_PENDING2);
 
+		// TODO split this into handling ARMC interrupts in PENDING 2 and
+		// VC interrupts in PENDING0/1
 		if (pending2&1<<24) {
 			if (register_get(&armc_access, IRQ0_PENDING0)&1<<1) 
 				return IRQ_VC_TIMER1;
@@ -80,6 +84,9 @@ void ic_irq_exception_handler(void)
 	switch (irq) {
 		case IRQ_VC_TIMER1:
 			timer_isr();
+			break;
+		case IRQ_VC_MMC:
+			signal_error(ERR_PLACEHOLDER1);
 			break;
 		default:
 		case IRQ_UNIMPLEMENTED:

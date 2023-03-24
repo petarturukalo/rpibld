@@ -3,16 +3,21 @@ objs+=$(patsubst src/%.c, build/%.o, $(wildcard src/*.c))
 # Cross compilation prefix.
 # TODO include trailing '-' so can use regular gcc on rpi
 # by setting this to blank?
+# TODO explain if changing cross_prefix might need to change libgcc_searchdir also
 cross_prefix=arm-none-eabi
 linker_script=boot.ld
+libgcc_searchdir=/usr/lib/gcc/arm-none-eabi/12.2.0
 CFLAGS=-nostdlib -r -march=armv7-a
-LDFLAGS=-T $(linker_script)
+# Link with -lgcc to resolve undefined reference to __aeabi_idivmod, 
+# needed to use the C modulo % operator. 
+LDFLAGS=-T $(linker_script) -static -L $(libgcc_searchdir)
+LDLIBS=-lgcc
 
 bootloader: build/bootloader.elf
 	$(cross_prefix)-objcopy -O binary $< $@
 
 build/bootloader.elf: $(objs) $(linker_script)
-	$(cross_prefix)-ld $(LDFLAGS) $(objs) -o $@
+	$(cross_prefix)-ld $(LDFLAGS) $(objs) $(LDLIBS) -o $@
 
 build/%.o: src/%.S
 	$(cross_prefix)-as $< -o $@

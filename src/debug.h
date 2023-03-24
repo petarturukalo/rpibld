@@ -10,6 +10,8 @@
 void sleep_short(void);
 void sleep_long(void);
 void print_word(word_t word);
+void print_word_reverse(word_t word);
+void print_bit(word_t word, int bit);
 void print_cpsr(void);
 
 #endif

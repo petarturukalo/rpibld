@@ -6,4 +6,10 @@
 #ifndef MMC_H
 #define MMC_H
 
+/*
+ * TODO document this after finished
+ */
+void mmc_init(void);
+void mmc_trigger_dummy_interrupt(void);// TODO rm after testing
+
 #endif 
