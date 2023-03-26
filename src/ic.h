@@ -7,6 +7,5 @@
 
 void ic_enable_interrupts(void);
 void ic_irq_exception_handler(void);
-void trigger_software_interrupt_0(void);
 
 #endif

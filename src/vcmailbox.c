@@ -27,13 +27,14 @@ static struct periph_access vcmailbox_access = {
  * @id: identifies which tag/property to get. Expected to store an enum tag_id.
  * @value_bufsz: size of value_buf in bytes, the greater between the bytes required 
  *	to store the request arguments and the bytes to store the response return 
- *	TODO is this correct?
  * @request/response_code: on request bit 31 should be clear. On response bit 31
  *	is set and bits 30:0 is the length of the value returned in value_buf.
  * @value_buf: when used in a request this stores the arguments input to the VC.
- *	When used in a response this stores the return value from the VC.
- * TODO if one is lesser where does it get stored, e.g. request 8 bytes return 4 bytes,
- *	is the return 4 bytes stored in the first 4 bytes or second 4 byes?
+ *	When used in a response this stores the return value from the VC. 
+ *	Both are stored at the start of this, regardless if their sizes differ, 
+ *	e.g. if the args use 8 bytes and the response 4 bytes, the size of this will
+ *	be 8 bytes, all 8 of which will be set to the args on request, but only the 
+ *	first 4 bytes set on response (with the remaining 4 bytes unused).
  */
 struct tag {
 	uint32_t id;
@@ -70,7 +71,6 @@ struct property_buffer {
  * @CHANNEL_PROPERTY: channel for the ARM to request properties/tags from
  *	the VideoCore. The data both sent and returned with this is a 16-byte aligned 
  *	address (i.e. the 4 least significant bits are clear) to a struct property_buffer.
- *	TODO is this what is actually returned?
  */
 enum channel {
 	CHANNEL_PROPERTY = 8
@@ -120,8 +120,10 @@ static struct tag_io_size *get_tag_io_size(enum tag_id id)
  */
 static void vcmailbox_write_message(uint32_t data, enum channel chan)
 {
-	/* Wait for full flag to clear. */
-	// TODO even need to wait?
+	/* 
+	 * Wait for full flag to clear (which after testing doesn't seem like is
+	 * necessary, but do it anyway just in case). 
+	 */
 	while (register_get(&vcmailbox_access, MBOX1_STATUS)&1<<31)
 		;
 	register_set(&vcmailbox_access, MBOX1_WRITE, (data&(~CHANNEL_BITS))|chan);
@@ -134,8 +136,10 @@ static void vcmailbox_write_message(uint32_t data, enum channel chan)
  */
 static uint32_t vcmailbox_read_message(void)
 {
-	/* Wait for empty flag to clear. */
-	// TODO need to even wait?
+	/* 
+	 * Wait for empty flag to clear (opposed to waiting for an interrupt; this is 
+	 * necessary compared to the wait done in vcmailbox_write_message()). 
+	 * */
 	while (register_get(&vcmailbox_access, MBOX0_STATUS)&1<<30)
 		;
 	return register_get(&vcmailbox_access, MBOX0_READ);
@@ -144,7 +148,7 @@ static uint32_t vcmailbox_read_message(void)
 /*
  * Return addr aligned to the nearest n-byte aligned address greater than or equal to itself.
  */
-static byte_t *align_address(void *addr, int n)
+static void *align_address(void *addr, int n)
 {
 	while ((int)addr%n)
 		++addr;
@@ -158,7 +162,7 @@ static byte_t *align_address(void *addr, int n)
  * @tag_request: data used to build up the tag. Its tag_io_data 
  *	stores the tag request arguments, if any
  *
- * Return size of the built tag in bytes, or -1 on error if the tag
+ * Return the size of the built tag in bytes, or -1 on error if the tag
  * is unimplemented.
  */
 static int build_tag(struct tag *tag, struct tag_request *req)
@@ -178,8 +182,6 @@ static int build_tag(struct tag *tag, struct tag_request *req)
 	mzero(&tag->value_buf, tag->value_bufsz);
 	if (iosz->request_args_sz) {
 		/* Copy request arguments into value buffer. */
-		// TODO should it be copied to the start of the value buf when the response
-		// is bigger than the request?
 		mcopy(req->tag_io_data, &tag->value_buf, iosz->request_args_sz);
 	}
 	/* 32-bit align. */
@@ -202,8 +204,8 @@ static struct property_buffer *build_property_buffer(struct tag_request *tag_req
 	struct tag_request *req;
 	int tag_size;
 
-	prop = (struct property_buffer *)heap_get_base_address();
-	prop = (struct property_buffer *)align_address((byte_t *)prop, 16);
+	prop = heap_get_base_address();
+	prop = align_address(prop, 16);
 
 	prop->request_code = 0;
 	prop_end = (byte_t *)&prop->tags;
@@ -245,11 +247,9 @@ static enum vcmailbox_error return_tag_responses(struct property_buffer *prop,
 			return VCMBOX_ERROR_TAG_RESPONSE_BIT_NOT_SET;
 		iosz = get_tag_io_size(tag->id);
 		if (iosz->response_sz != (tag->response_code&~(1<<31)))
-			/* TODO look into how this should work with a variable size return */
 			return VCMBOX_ERROR_TAG_RESPONSE_SIZE_MISMATCH;
 
 		/* Copy tag response into user's output buffer. */
-		// TODO copying from correct spot of value_buf when receive/response szs diff?
 		mcopy(&tag->value_buf, req->tag_io_data+iosz->request_args_sz, iosz->response_sz);
 
 		/* Jump to next tag. */
@@ -270,15 +270,12 @@ enum vcmailbox_error vcmailbox_request_tags(struct tag_request *tag_requests, in
 		return VCMBOX_ERROR_TAG_UNIMPLEMENTED;
 
 	vcmailbox_write_message((uint32_t)send_prop, CHANNEL_PROPERTY);
-	// TODO need to worry about using irq to wait for response?
 	recv_msg = vcmailbox_read_message();
-	// TODO if something else uses this mailbox then should be looping until correct response?
 	if (recv_msg&CHANNEL_BITS != CHANNEL_PROPERTY)
 		return VCMBOX_ERROR_RECEIVE_WRONG_CHANNEL;
 	recv_prop = (struct property_buffer *)(recv_msg&(~CHANNEL_BITS));
 
 	if (recv_prop != send_prop)
-		// TODO this even need to be done?
 		return VCMBOX_ERROR_BUFFER_RESPONSE_ADDR_MISMATCH;
 	if (!(recv_prop->response_code&1<<31)) 
 		return VCMBOX_ERROR_BUFFER_RESPONSE_BIT_NOT_SET;

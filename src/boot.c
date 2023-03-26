@@ -24,12 +24,12 @@ void c_entry(void)
 	/*mmc_init();*/
 	/*mmc_trigger_dummy_interrupt();*/
 
-	err = vcmailbox_request_tags((struct tag_request[]){ HW_GET_BOARD_REV, &rev }, 1);
-	if (err != VCMBOX_ERROR_NONE)
-		signal_error(err);
-	uint32_t val = 0;
-	mcopy(&rev, &val, sizeof(uint32_t));
-	print_word(val);
+	mzero(&rev, sizeof(rev));
+	while (1) {
+		err = vcmailbox_request_tags((struct tag_request[]){ HW_GET_BOARD_REV, &rev }, 1);
+		if (err != VCMBOX_ERROR_NONE)
+			signal_error(err);
+	}
 
 	__asm__("wfi");
 }

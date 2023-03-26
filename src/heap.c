@@ -1,6 +1,6 @@
 #include "heap.h"
 
-byte_t *heap_get_base_address(void)
+void *heap_get_base_address(void)
 {
 	/*
 	 * The heap starts at ~300 MB and is expected to be

@@ -12,6 +12,6 @@
  * no allocation / memory management implemented - it is 
  * up to the callers (me) to ensure it is used asynchronously.
  */
-byte_t *heap_get_base_address(void);
+void *heap_get_base_address(void);
 
 #endif

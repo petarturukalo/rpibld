@@ -41,16 +41,14 @@ static struct periph_access armc_access = {
 // TODO have the peripheral register its interrupt in its init code? maybe not
 void ic_enable_interrupts(void)
 {
-	/* Enable system timer channel 1, VC interrupt 1. */
+/* Enable VideoCore interrupts: */
+	/* Enable system timer channel 1. */
 	register_set(&armc_access, IRQ0_SET_EN_0, 1<<1);
 	// TODO do i want SDHOST VC interrupt 56 or EMMC VC interrupt 62
 	// (enable both for now)
 	/* Enable MMC. */
 	register_set(&armc_access, IRQ0_SET_EN_1, 1<<24);
 	register_set(&armc_access, IRQ0_SET_EN_1, 1<<30);
-	/* Enable software-triggered interrupt 0. */
-	// TODO #ifdef DEBUG?
-	/*register_set(&armc_access, IRQ0_SET_EN_2, 1<<8);*/
 }
 
 static enum irq get_irq_source(void)
@@ -93,9 +91,3 @@ void ic_irq_exception_handler(void)
 			break;
 	}
 }
-
-void trigger_software_interrupt_0(void)
-{
-	register_set(&armc_access, SWIRQ_SET, 1);
-}
-
