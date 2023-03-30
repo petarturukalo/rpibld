@@ -11,5 +11,6 @@
  */
 void mmc_init(void);
 void mmc_trigger_dummy_interrupt(void);// TODO rm after testing
+void mmc_dummy_isr(void);// TODO rm after testing?
 
 #endif 

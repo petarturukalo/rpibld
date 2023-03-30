@@ -89,8 +89,8 @@ struct tag_io_size {
 };
 
 struct tag_io_size tag_io_sizes[] = {
-#define EXPAND_TO(name, id, request_args_sz, response_sz) \
-	{ id, request_args_sz, response_sz },
+#define EXPAND_TO(name, id, args_sz, ret_sz) \
+	{ id, args_sz, ret_sz },
 EXPAND_TAG_LIST
 #undef EXPAND_TO
 };
@@ -243,15 +243,18 @@ static enum vcmailbox_error return_tag_responses(struct property_buffer *prop,
 		if (tag->id != req->id)
 			/* Or got a response from a tag that wasn't supposed to be there. */
 			return VCMBOX_ERROR_TAG_RESPONSE_OUT_OF_ORDER;
+		// TODO GPIO_SET_STATE dosen't return response code correctly, even though
+		// it can succeed and set the value for a subsequent read to update
 		if (!(tag->response_code&1<<31))
 			return VCMBOX_ERROR_TAG_RESPONSE_BIT_NOT_SET;
 		iosz = get_tag_io_size(tag->id);
-		if (iosz->response_sz != (tag->response_code&~(1<<31)))
+		if (iosz->response_sz != (tag->response_code&~(1<<31))) 
 			return VCMBOX_ERROR_TAG_RESPONSE_SIZE_MISMATCH;
 
-		/* Copy tag response into user's output buffer. */
-		mcopy(&tag->value_buf, req->tag_io_data+iosz->request_args_sz, iosz->response_sz);
-
+		if (iosz->response_sz) {
+			/* Copy tag response into user's output buffer. */
+			mcopy(&tag->value_buf, req->tag_io_data+iosz->request_args_sz, iosz->response_sz);
+		}
 		/* Jump to next tag. */
 		tag = (struct tag *)((byte_t *)&tag->value_buf + tag->value_bufsz);
 	}
