@@ -1,10 +1,10 @@
 #include "mmc.h"
 #include "mmio.h"
+#include "tag.h"
 #include "debug.h"  // TODO rm
 #include "timer.h"  // TODO can keep this?
 #include "error.h"  // TODO rm?
 
-/* TODO explain where these are from? */
 enum mmc_registers {
 	CMDTM,
 	DATA,
@@ -18,17 +18,10 @@ enum mmc_registers {
 };
 
 static struct periph_access mmc_access = {
-	// TODO explain where get this from after choose the correct one.
-	// TODO delete unused after get a response from mmc
-	// 0x7e30,0000 (addr of mmc base from bcm2835) sub bcm2835 main periph base
-	/*.periph_base_off = 0x300000,  */
-	// 0x7e30,0000 (addr of dt mmc node) sub bcm2711 main periph base
-	/*.periph_base_off = 0x2300000, */
-	// 0x7e20,2000 (addr of dt mmc sdhost node) sub bcm2711 main periph base
-	/*.periph_base_off = 0x2202000,     */
-	// 0x7e34,0000 (addr of dt emmc2) sub bcm2711 main periph base
-	// TODO seems like this offset is correct because it's the only one that shows the more
-	// (almost most) significant bits of the STATUS reg being reset to 1
+	/* 
+	 * This offset comes from the BCM2711 RPI 4 B device tree 
+	 * EMMC2 node at /emmc2bus/mmc. 
+	 */
 	.periph_base_off = 0x2340000,
 	.register_offsets = {
 		[CMDTM]      = 0x0c,
@@ -43,20 +36,84 @@ static struct periph_access mmc_access = {
 	}
 };
 
+/* 100 MHz. */
+#define EMMC2_EXPECTED_BASE_CLOCK_HZ 100000000
+
+/*
+ * Assert that the EMMC2 base clock has a clock rate of EMMC2_EXPECTED_BASE_CLOCK_HZ.
+ */
+static void mmc_assert_base_clock(void)
+{
+	struct clock_state state;
+	int rate;
+
+	state = tag_clock_get_state(CLK_EMMC2);
+	if (state.clk_not_exists || !state.on)
+		signal_error(ERROR_VC_NOT_INIT_MMC);
+	rate = tag_clock_get_rate(CLK_EMMC2);
+	if (rate != EMMC2_EXPECTED_BASE_CLOCK_HZ)
+		signal_error(ERROR_VC_NOT_INIT_MMC);
+}
+
+/*
+ * Assert that the supply for the bus IO line power is 3.3V.
+ */
+static void mmc_assert_voltage(void)
+{
+	struct gpio_expander_pin_config cfg;
+	int state;
+
+	cfg = tag_gpio_get_config(GPIO_EXPANDER_VDD_SD_IO_SEL);
+	if (!gpio_config_pin_is_output(&cfg) || !gpio_config_pin_is_active_high(&cfg))
+		signal_error(ERROR_VC_NOT_INIT_MMC);
+	state = tag_gpio_get_state(GPIO_EXPANDER_VDD_SD_IO_SEL);
+	/* From the BCM2711 RPI 4 B device tree 0 is 3.3V, 1 is 1.8V. */
+	if (state) 
+		signal_error(ERROR_VC_NOT_INIT_MMC);
+}
+
+/*
+ * Assert that the card is supplied power.
+ */
+static void mmc_assert_card_power(void)
+{	
+	struct gpio_expander_pin_config cfg;
+	int state;
+
+	cfg = tag_gpio_get_config(GPIO_EXPANDER_SD_PWR_ON);
+	if (!gpio_config_pin_is_output(&cfg) || !gpio_config_pin_is_active_high(&cfg))
+		signal_error(ERROR_VC_NOT_INIT_MMC);
+	state = tag_gpio_get_state(GPIO_EXPANDER_SD_PWR_ON);
+	if (!state) 
+		signal_error(ERROR_VC_NOT_INIT_MMC);
+}
+
+/*
+ * Assert that the VideoCore firmware which loaded this bootloader program set up
+ * the MMC controller as expected.
+ *
+ * Signal error with error ERROR_VC_NOT_INIT_MMC if the assertion fails.
+ */
+static void mmc_assert_vc_init(void)
+{
+	mmc_assert_base_clock();
+	mmc_assert_voltage();
+	mmc_assert_card_power();
+}
+
 void mmc_init(void)
 {
-	// TODO apparently need to set up clock before can receive an interrupt
-	// (follow instructions in 3.2 SD clock control)
+	mmc_assert_vc_init();
+	// TODO explain that because defaults are set up then set clock to 1/4
+	// to achieve default speed bus mode
 	// TODO explain where got these steps from after get it working
-	// TODO is this supplying to the card and should only be done if there's a card present?
-	// if so should only be setting clock and power for card if can detect card is connected.
-	// can detect whether card connected using a GPIO pin? NEED TO EXPLAIN THAT THIS IS
-	// ACTUALLY SUPPLYING CLOCK TO THE SD CARD
+	// TODO detect whether card is present (but can't?). maybe wait for timeout eventually instead.
 
 	/* Use 4 data lines. TODO in correct spot? */
 	/*register_enable_bits(&mmc_access, CONTROL0, 1);*/
 
 	/*
+	 * TODO put this in its own clock set up / init function
 	 * The core clock of this MMC controller is the EMMC2 clock, which has a 
 	 * 100 MHz clock rate (the clock is accessible through the VC mailbox).
 	 * By default this will be operating in the "default speed" bus speed mode, which has

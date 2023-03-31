@@ -1,12 +1,15 @@
 #ifndef ERROR_R
 #define ERROR_R
 
-// TODO explanation after get more here
-// TODO don't like ERR prefix, make it ERROR?
+/*
+ * @ERROR_VCMAILBOX: error using the VideoCore mailbox
+ * @ERROR_VC_NOT_INIT_MMC: the VideoCore firmware didn't intialise
+ *	MMC as expected (see mmc_assert_vc_init() for more info)
+ */
 enum error_code {
-	// TODO explicitly set these so you know how many times it beeps
-	ERR_PLACEHOLDER1 = 1,  // TODO rm
-	ERR_PLACEHOLDER2 = 2   // TODO rm
+	/* Ensure these are set to an explicit value to know how many times it beeps. */
+	ERROR_VCMAILBOX = 1,
+	ERROR_VC_NOT_INIT_MMC = 2
 };
 
 /*

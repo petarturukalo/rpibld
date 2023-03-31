@@ -76,37 +76,6 @@ enum channel {
 	CHANNEL_PROPERTY = 8
 };
 
-/*
- * @request_args_sz: size of buffer used to store arguments input
- *	to the tag's request
- * @response_sz: size of buffer used to store return value output 
- *	from the tag's response
- */
-struct tag_io_size {
-	enum tag_id id;
-	int request_args_sz;
-	int response_sz;
-};
-
-struct tag_io_size tag_io_sizes[] = {
-#define EXPAND_TO(name, id, args_sz, ret_sz) \
-	{ id, args_sz, ret_sz },
-EXPAND_TAG_LIST
-#undef EXPAND_TO
-};
-
-static struct tag_io_size *get_tag_io_size(enum tag_id id)
-{
-	struct tag_io_size *iosz = tag_io_sizes;
-	int n = ARRAY_LEN(tag_io_sizes);
-
-	for (int i = 0; i < n; ++i, ++iosz) {
-		if (iosz->id == id)
-			return iosz;
-	}
-	return NULL;
-}
-
 /* 
  * Channel spans the 4 least significant bits (bits 3:0) of the 32-bit message.
  */
@@ -159,30 +128,24 @@ static void *align_address(void *addr, int n)
  * Build up a variable-sized tag.
  *
  * @tag: heap address of tag to build up
- * @tag_request: data used to build up the tag. Its tag_io_data 
- *	stores the tag request arguments, if any
+ * @tag_request: used to build up the tag
  *
- * Return the size of the built tag in bytes, or -1 on error if the tag
- * is unimplemented.
+ * Return the size of the built tag in bytes.
  */
 static int build_tag(struct tag *tag, struct tag_request *req)
 {
-	struct tag_io_size *iosz;
 	/* Used to build up the tag. Points to the next available address. */
 	byte_t *tag_end;
 	
 	tag->id = req->id;
-	iosz = get_tag_io_size(tag->id);
-	if (!iosz) 
-		return -1;
-	tag->value_bufsz = max(iosz->request_args_sz, iosz->response_sz);
+	tag->value_bufsz = max(req->args_sz, req->ret_sz);
 	tag->request_code = 0;
 
 	tag_end = (byte_t *)&tag->value_buf + tag->value_bufsz;
 	mzero(&tag->value_buf, tag->value_bufsz);
-	if (iosz->request_args_sz) {
+	if (req->args_sz) {
 		/* Copy request arguments into value buffer. */
-		mcopy(req->tag_io_data, &tag->value_buf, iosz->request_args_sz);
+		mcopy(req->args, &tag->value_buf, req->args_sz);
 	}
 	/* 32-bit align. */
 	tag_end = align_address(tag_end, 4);
@@ -193,8 +156,6 @@ static int build_tag(struct tag *tag, struct tag_request *req)
  * Build up a property buffer on the heap and return the address to it.
  * The heap is used because the property buffer and tags are variable size 
  * dependent on which and how many tags are selected.
- *
- * Return NULL if any one requested tag is unimplemented.
  */
 static struct property_buffer *build_property_buffer(struct tag_request *tag_requests, int n)
 {
@@ -202,7 +163,6 @@ static struct property_buffer *build_property_buffer(struct tag_request *tag_req
 	/* Used to build up the property buffer. Points to the next available address. */
 	byte_t *prop_end;  
 	struct tag_request *req;
-	int tag_size;
 
 	prop = heap_get_base_address();
 	prop = align_address(prop, 16);
@@ -212,10 +172,7 @@ static struct property_buffer *build_property_buffer(struct tag_request *tag_req
 	/* Build tags. */
 	req = tag_requests;
 	for (int i = 0; i < n; ++i, ++req) {
-		tag_size = build_tag((struct tag *)prop_end, req);
-		if (tag_size == -1)
-			return NULL;
-		prop_end += tag_size;
+		prop_end += build_tag((struct tag *)prop_end, req);
 	}
 	/* Mark end of tags. */
 	*(uint32_t *)prop_end = 0;
@@ -234,7 +191,6 @@ static enum vcmailbox_error return_tag_responses(struct property_buffer *prop,
 {
 	struct tag *tag = (struct tag *)&prop->tags;
 	struct tag_request *req = tag_requests;
-	struct tag_io_size *iosz;
 	int i = 0;
 
 	/* Will stop at the zeroed "end tag" marker. */
@@ -243,17 +199,14 @@ static enum vcmailbox_error return_tag_responses(struct property_buffer *prop,
 		if (tag->id != req->id)
 			/* Or got a response from a tag that wasn't supposed to be there. */
 			return VCMBOX_ERROR_TAG_RESPONSE_OUT_OF_ORDER;
-		// TODO GPIO_SET_STATE dosen't return response code correctly, even though
-		// it can succeed and set the value for a subsequent read to update
 		if (!(tag->response_code&1<<31))
 			return VCMBOX_ERROR_TAG_RESPONSE_BIT_NOT_SET;
-		iosz = get_tag_io_size(tag->id);
-		if (iosz->response_sz != (tag->response_code&~(1<<31))) 
+		if (req->ret_sz != (tag->response_code&~(1<<31))) 
 			return VCMBOX_ERROR_TAG_RESPONSE_SIZE_MISMATCH;
 
-		if (iosz->response_sz) {
+		if (req->ret_sz) {
 			/* Copy tag response into user's output buffer. */
-			mcopy(&tag->value_buf, req->tag_io_data+iosz->request_args_sz, iosz->response_sz);
+			mcopy(&tag->value_buf, req->ret, req->ret_sz);
 		}
 		/* Jump to next tag. */
 		tag = (struct tag *)((byte_t *)&tag->value_buf + tag->value_bufsz);
@@ -269,8 +222,6 @@ enum vcmailbox_error vcmailbox_request_tags(struct tag_request *tag_requests, in
 	uint32_t recv_msg;
 
 	send_prop = build_property_buffer(tag_requests, n);
-	if (!send_prop) 
-		return VCMBOX_ERROR_TAG_UNIMPLEMENTED;
 
 	vcmailbox_write_message((uint32_t)send_prop, CHANNEL_PROPERTY);
 	recv_msg = vcmailbox_read_message();

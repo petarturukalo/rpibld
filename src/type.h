@@ -1,6 +1,7 @@
 #ifndef TYPE_H
 #define TYPE_H
 
+typedef unsigned int bits_t;
 typedef char byte_t;
 typedef int word_t;
 
