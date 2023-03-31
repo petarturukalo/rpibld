@@ -101,32 +101,23 @@ static void mmc_assert_vc_init(void)
 	mmc_assert_card_power();
 }
 
-void mmc_init(void)
+/*
+ * Supply the clock to the card. Given that this is called after mmc_assert_vc_init()
+ * it can safely be assumed that the base clock is 100 MHz and that 3.3V power is being
+ * supplied. 
+ *
+ * The only two bus speed modes supported at 3.3V are default speed and high speed. Default
+ * speed has a max clock speed of 25 MHz, and high speed 50 MHz. High speed mode requires
+ * setting a register field to use; because the register fields relevant to bus speed modes
+ * are reset to 0x0 on boot, default speed can be assumed, and so the base 100 MHz clock rate 
+ * is divided to get a 25 MHz rate.
+ */
+static void mmc_supply_clock(void)
 {
-	mmc_assert_vc_init();
-	// TODO explain that because defaults are set up then set clock to 1/4
-	// to achieve default speed bus mode
-	// TODO explain where got these steps from after get it working
-	// TODO detect whether card is present (but can't?). maybe wait for timeout eventually instead.
-
-	/* Use 4 data lines. TODO in correct spot? */
-	/*register_enable_bits(&mmc_access, CONTROL0, 1);*/
-
 	/*
-	 * TODO put this in its own clock set up / init function
-	 * The core clock of this MMC controller is the EMMC2 clock, which has a 
-	 * 100 MHz clock rate (the clock is accessible through the VC mailbox).
-	 * By default this will be operating in the "default speed" bus speed mode, which has
-	 * a maximum clock rate of 25 MHz. A clock divider of 4 is used to reach this
-	 * 25 MHz clock rate.
-	 *
 	 * The host controller uses a 10-bit divided clock mode. A value of N defined across the
-	 * fields that make up the 10 bits implies the base clock is divided by 2N, so to achieve
-	 * a clock divider of 4, N is set 2 (0b10).
-	 * TODO explain why it's operating in default speed mode (assertions on GPIO expander
-	 * values: 100 MHz clock rate, 3.3V, power on, etc.)
-	 * TODO calculate SDCLK Frequency Select by actually reading EMMC2 clock value? or just signal
-	 *	error if assertions on how VC firmware left things aren't correct
+	 * fields that make up the 10 bits results in the base clock being divided by 2N, so to 
+	 * achieve a clock divider of 4, N is set to 2 (0b10).
 	 */
 	register_enable_bits(&mmc_access, CONTROL1, 0b10<<8);
 	/* Enable internal clock. */
@@ -139,7 +130,20 @@ void mmc_init(void)
 		;
 	/* Enable clock. */
 	register_enable_bits(&mmc_access, CONTROL1, 1<<2);
-	// TODO still can't trigger interrupt after setting up the clock
+}
+
+void mmc_init(void)
+{
+	mmc_assert_vc_init();
+	mmc_supply_clock();
+	/* Now in default speed mode. */
+	// TODO detect whether card is present (but can't?). maybe wait for timeout eventually instead.
+
+	/* 
+	 * Use 4 data lines. 
+	 * TODO in correct spot, can defualt speed only operate with 4 data lines? 
+	 */
+	/*register_enable_bits(&mmc_access, CONTROL0, 1);*/
 
 	/* Enable TODO X interrupt. */
 	// TODO use register_enable_bits() instead?
