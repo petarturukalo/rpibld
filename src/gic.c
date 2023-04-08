@@ -1,7 +1,7 @@
 #include "gic.h"
 #include "mmio.h"
 
-enum gic400_distributor_registers {
+enum gic400_distributor_register {
 	GICD_CTLR,
 	GICD_IGROUPR3,
 	GICD_ISENABLER3,
@@ -22,7 +22,7 @@ static struct periph_access gic400_distributor_access = {
 	}
 };
 
-enum gic400_cpu_interface_registers {
+enum gic400_cpu_interface_register {
 	GICC_CTLR
 };
 

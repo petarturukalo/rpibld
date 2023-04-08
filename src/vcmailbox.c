@@ -3,7 +3,7 @@
 #include "help.h"
 #include "heap.h"
 
-enum vcmailbox_registers {
+enum vcmailbox_register {
 	MBOX0_READ,
 	MBOX0_STATUS,
 	MBOX1_WRITE,

@@ -1,5 +1,7 @@
+# TODO use find instead?
 objs=$(patsubst src/%.S, build/%.o, $(wildcard src/*.S))
 objs+=$(patsubst src/%.c, build/%.o, $(wildcard src/*.c))
+objs+=$(patsubst src/sd/%.c, build/sd/%.o, $(wildcard src/sd/*.c))
 # Cross compilation prefix.
 # TODO include trailing '-' so can use regular gcc on rpi
 # by setting this to blank?
@@ -26,7 +28,8 @@ build/%.o: src/%.c
 	$(cross_prefix)-gcc $(CFLAGS) $< -o $@
 
 clean:
-	rm build/* bootloader
+	find build -name '*.o' -print -delete
+	rm build/bootloader.elf bootloader
 
 # TODO rm install and uninstall - just used to automate testing
 install:

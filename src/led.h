@@ -6,7 +6,7 @@
 #define LED_H
 
 // TODO mv back to .c
-enum gpio_registers {
+enum gpio_register {
 	GPFSEL4,
 	GPSET1,
 	GPCLR1,

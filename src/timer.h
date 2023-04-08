@@ -13,27 +13,30 @@
 #ifndef TIMER_H
 #define TIMER_H
 
+#include "type.h"
+
+void timer1_isr(void);
+void timer3_isr(void);
+
 /*
- * Queue an interrupt request on system timer channel 1 to trigger at a 
- * milliseconds amount of time after the current time. 
+ * Pause the CPU, putting it in an idle state for a milliseconds/microseconds amount of time.
  *
- * Only one interrupt can be "queued" at a time. If a second call is made 
- * to this without the first triggering an interrupt, the first queued interrupt 
- * is lost and overwritten with the second, e.g. if this is called once to queue
- * an interrupt in 5 seconds, then 2 seconds pass, and this is called again to
- * queue another interrupt, an interrupt won't trigger until another 5 seconds has
- * passed (7 seconds total elapsed).
+ * WARNING do not sleep for a vert short microseconds amount of time, e.g. less than 5 microseconds
+ * from testing, because of potential race conditions: either the interrupt won't be triggered or it 
+ * will be triggered before sleeping, resulting in waiting for an interrupt that has already interrupted. 
+ * To be on the safe side use a minimum microseconds value considerably higher than the 5 microseconds 
+ * minimum mentioned earlier.
  */
-void timer_queue_irq(int milliseconds);
-
-/*
- * Service an interrupt request on system timer channel 1 by clearing the interrupt.
- */
-void timer_isr(void);
-
-/*
- * Pause the CPU, putting it in an idle state for milliseconds amount of time.
- */
+void usleep(int microseconds);
 void sleep(int milliseconds);
+
+/*
+ * Start a non-sleeping timer with timer_poll_start(). Whether the milliseconds amount of time argument
+ * to timer_poll_start() has elapsed can be checked/polled with timer_poll_done(). 
+ */
+void timer_poll_start(int milliseconds);
+bool timer_poll_done(void);
+/* Prevent the timer from finishing and triggering an interrupt. */
+void timer_poll_stop(void);
 
 #endif

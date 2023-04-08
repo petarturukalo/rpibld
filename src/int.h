@@ -9,6 +9,7 @@ enum irq {
 	IRQ_UNIMPLEMENTED,
 	/* VideoCore interrupts. */
 	IRQ_VC_TIMER1,
+	IRQ_VC_TIMER3,
 	IRQ_VC_SDC,
 	IRQ_VC_SDHOST,
 	IRQ_VC_EMMC2

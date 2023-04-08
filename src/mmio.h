@@ -20,19 +20,22 @@
  *	this field. The name used for the enum value is typically the short name of a register 
  *	from the BCM2711 datasheet or other technical documentation. 
  *
- * The convention to define the format of a register's value (i.e. its fields) is to define a separate
- * struct for each register named reg_<register name>. These struct definitions should be near the periph_access
- * definition. The register's fields shall be represented using bit-field struct members. This is used 
- * opposed to #define for register field shifts and masks. 
- * TODO if only need a few fields then fine to use shifts?
- * TODO if reg only used in one place might be ok to define it there (e.g. in a func)
+ * The convention to define the format of a register's value (i.e. its fields) is either of the following.
+ *
+ * 1. If many of the register's fields will be used, define a separate struct for each register named 
+ * <register name>. The register's fields shall be represented using bit-field struct members. 
+ * 2. If only a few of the register's fields will be used, #define shifts and/or masks for the register's 
+ * fields, of name <register_name>_<field>_{SHIFT,MASK}.
+ *
+ * With either choice, the definitions should appear near the periph_access for the registers which
+ * the definitions represent.
  */
 struct periph_access {
 	int periph_base_off;
 	int register_offsets[];
 };
 
-// TODO need volatile here (forgot to put it in .c when i added it here too)
+// TODO need volatile here? (forgot to put it in .c when i added it here too)
 /*
  * Set/get the value of a 32-bit memory-mapped register.
  *

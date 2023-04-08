@@ -4,78 +4,13 @@
  * - SD Specifications Part A2 SD Host Controller Specification Version 3.00
  */
 #include "sd.h"
-#include "mmio.h"
-#include "tag.h"
-#include "help.h"
-#include "debug.h"  // TODO rm
-#include "timer.h"  // TODO can keep this?
-#include "error.h"  // TODO rm?
-#include "led.h"//TODO rm
-
-enum sd_registers {
-	ARG1,
-	CMDTM,
-	RESP0,
-	DATA,
-	STATUS,
-	CONTROL0,
-	CONTROL1,
-	INTERRUPT,
-	IRPT_MASK,
-	IRPT_EN,
-	FORCE_IRPT
-};
-
-static struct periph_access sd_access = {
-	/* 
-	 * This offset comes from the BCM2711 RPI 4 B device tree 
-	 * EMMC2 node at /emmc2bus/mmc. 
-	 */
-	.periph_base_off = 0x2340000,
-	.register_offsets = {
-		[ARG1]       = 0x08,
-		[CMDTM]      = 0x0c,
-		[RESP0]      = 0x10,
-		[DATA]	     = 0x20,
-		[STATUS]     = 0x24,
-		[CONTROL0]   = 0x28,
-		[CONTROL1]   = 0x2c,
-		[INTERRUPT]  = 0x30,
-		[IRPT_MASK]  = 0x34,
-		[IRPT_EN]    = 0x38,
-		[FORCE_IRPT] = 0x50
-	}
-};
-
-/* Format of registers INTERRUPT, IRPT_MASK, IRPT_EN, FORCE_IRPT. */
-struct reg_interrupt {
-	bits_t command_complete : 1;
-	bits_t transfer_complete : 1;
-	bits_t block_gap : 1;
-	bits_t reserved1 : 1;
-	bits_t write_ready : 1;
-	bits_t read_ready : 1;
-	bits_t reserved2 : 2;
-	bits_t card : 1;
-	bits_t reserved3 : 3;
-	bits_t retune : 1;
-	bits_t bootack : 1;
-	bits_t endboot : 1;
-/* Errors below. */
-	/* The "error" field only applies to the INTERRUPT register. */
-	bits_t error : 1;  
-	bits_t command_timeout_error : 1;
-	bits_t command_crc_error : 1;
-	bits_t command_end_bit_error : 1;
-	bits_t command_index_error : 1;
-	bits_t data_timeout_error : 1;
-	bits_t data_crc_error : 1;
-	bits_t data_end_bit_error : 1;
-	bits_t reserved4 : 1;
-	bits_t auto_cmd_error : 1;
-	bits_t reserved5 : 7;
-} __attribute__((packed));
-
+#include "../mmio.h"
+#include "../tag.h"
+#include "../error.h"
+#include "../help.h"
+#include "reg.h"
+#include "cmd.h"
+#include "../led.h"//TODO rm
 
 /* 100 MHz. */
 #define EMMC2_EXPECTED_BASE_CLOCK_HZ 100000000
@@ -143,123 +78,6 @@ struct card {
 	bool sdhc_or_sdxc;
 };
 
-
-// TODO put this in mmc/sd dir so can separate into multiple files?
-/*
- * Index identifier for a command. 
- * TODO make this explanation better or put it in struct command?
- */
-enum command_index {
-	CMD_IDX_GO_IDLE_STATE = 0,
-	CMD_IDX_SEND_IF_COND  = 8  /* Send interface condition. */
-};
-
-/*
- * @CMD_TYPE_BC: broadcast: broadcast the command to all cards. 
- *	Doesn't expect a response.
- * @CMD_TYPE_BCR: broadcast response: broadcast the command to all cards.
- *	 Does expect a response.
- * @CMD_TYPE_AC: addressed command: send a command to the addressed card. 
- *	No data transfer.
- * @CMD_TYPE_ADTC: addressed data transfer command: send a command to the 
- *	addressed card. Transfers data.
- */
-enum command_type {
-	CMD_TYPE_BC,
-	CMD_TYPE_BCR,
-	CMD_TYPE_AC,
-	CMD_TYPE_ADTC
-};
-
-/*
- * A response to a command.
- * TODO define the struct that pairs to this as well for interpreting the return?
- * TODO explain what these actually are?
- */
-enum command_response {
-	// TODO if not expecting response driver needs to clear cmd inhibit bit if cmd is successful?
-	CMD_RESP_NONE,
-	CMD_RESP_NORMAL,
-	CMD_RESP_NORMAL_BUSY,
-	CMD_RESP_CID_OR_CSD_REG,
-	CMD_RESP_OCR_REG,
-	CMD_RESP_PUBLISHED_RCA,
-	CMD_RESP_CARD_INTERFACE_CONDITION,
-};
-
-// TODO define the enum's that are only used from within this struct, in the struct itself?
-/*
- * A command to control the SD card.
- */
-struct command {
-	enum command_index index;
-	enum command_type type;
-	enum command_response response;
-};
-
-struct command commands[] = {
-	{ CMD_IDX_GO_IDLE_STATE, CMD_TYPE_BC,  CMD_RESP_NONE },
-	{ CMD_IDX_SEND_IF_COND,  CMD_TYPE_BCR, CMD_RESP_CARD_INTERFACE_CONDITION },
-	{ 0 }
-};
-
-static struct command *get_command(enum command_index idx)
-{
-	int n = array_len(commands);
-	struct command *cmd = commands;
-
-	for (int i = 0; i < n; ++i, ++cmd) {
-		if (cmd->index == idx)
-			return cmd;
-	}
-	return NULL;
-}
-
-/*
- * Issue a command to the SD card.
- * @args: arguments optionally used by the command
- */
-static void sd_issue_command(enum command_index idx, uint32_t args)
-{
-	struct command *cmd;
-	// TODO document what this is (fmt of CMDTM reg)
-	struct {
-		bits_t todo1 : 16;  /* TODO expand this to the actual fields */
-		bits_t cmd_rspns_type : 2;
-		bits_t reserved1 : 1;
-		bits_t cmd_crcchk_en : 1;
-		bits_t cmd_ixchk_en : 1;
-		bits_t todo2 : 3; /* TODO expand this to the actual fields. */
-		bits_t cmd_index : 6;
-		bits_t reserved2 : 2;
-	/* TODO where should attribute be? */
-	} __attribute__((packed)) cmdtm;
-
-	/* TODO should check CMD_INHIBIT field? */
-
-	/* TODO need to use ARG2 if it's ACMD23 */
-	// TODO mention setting args
-	register_set(&sd_access, ARG1, args);
-
-	cmd = get_command(idx);
-	// TODO error return command unimplemented
-	/*if (!cmd) {*/
-	/*}*/
-	mzero(&cmdtm, sizeof(cmdtm));
-	cmdtm.cmd_index = idx;
-	// TODO don't do it like this (just temporary)
-	if (cmd->response == CMD_RESP_CARD_INTERFACE_CONDITION) {
-		// TODO see sdhost spec 'Command Register'.'Response Type Select'
-		cmdtm.cmd_rspns_type = 0b10;
-		cmdtm.cmd_crcchk_en = true;
-		cmdtm.cmd_ixchk_en = true;
-	}
-
-	register_set(&sd_access, CMDTM, cast_bitfields(cmdtm, uint32_t));
-// TODO if not expecting a response from a command still need to wait for the data
-// transfer to finish (e.g. see phys spec 4.7.2)
-// TODO does interrupt 0 CMD_DONE apply to all commands, even those that don't expect a response?
-}
 
 /*
  * Assert that the EMMC2 base clock has a clock rate of EMMC2_EXPECTED_BASE_CLOCK_HZ.
@@ -428,29 +246,18 @@ static void sd_supply_clock_tmp(void)
 
 static void sd_enable_interrupts(void)
 {
-	struct reg_interrupt irpt;
+	struct interrupt irpt;
 
 	mzero(&irpt, sizeof(irpt));
-	irpt.command_complete = 1;
-	irpt.command_timeout_error = 1;
+	irpt.cmd_complete = 1;
+	irpt.cmd_timeout_error = 1;
 	// TODO need CMD59 to even use CRC?
-	irpt.command_crc_error = 1;
-	irpt.command_end_bit_error = 1;
-	irpt.command_index_error = 1;
+	irpt.cmd_crc_error = 1;
+	irpt.cmd_end_bit_error = 1;
+	irpt.cmd_index_error = 1;
 
 	/* Enable triggered interrupts to be flagged in the INTERRUPT register. */
 	register_set_ptr(&sd_access, IRPT_MASK, &irpt);
-	/*
-	 * Interrupt generation is purposefully NOT enabled through the IRPT_EN register.  
-	 * All the ISR would be doing is clearing
-	 * the interrupts and setting a global variable identifying which interrupts were
-	 * triggered, for use by the non-ISR code. But this is the same info already available
-	 * in the INTERRUPT register, so polling of the INTERRUPT register is opted for instead,
-	 * to avoid the potential race conditions introduced by using interrupts. by  and polling of interrupts through the INTERRUPT register opted
-	 * for instead to avoid race conditions.
-	 * TODO maybe not - write the code and check the asm 
-	 * TODO if end up polling then rename this fn?
-	 */
 	/* Enable interrupt generation. */
 	register_set_ptr(&sd_access, IRPT_EN, &irpt);
 }
@@ -468,62 +275,23 @@ static void sd_pre_cmd_init(void)
 	sd_enable_interrupts();
 }
 
-/* 
- * The interrupts generated from the most recent interrupt. 
- * This is actually a struct reg_interrupt masquerading as a
- * word/int so it can have atomic access.
- * TODO confirm
- */
-struct reg_interrupt interrupt;
-
 void sd_init(void)
 {
+	enum command_error error;
+
 	sd_pre_cmd_init();
 	/* TODO mention in 1-bit bus width 400 KHz mode? */
-	/* TODO because don't have a zeroed .bss section. */
-	mzero(&interrupt, sizeof(interrupt));
 
-	// TODO check sd_issue_command() works after able to get a response from CMD8
-	/*issue_command(CMD_IDX_GO_IDLE_STATE, 0);*/
-	register_set(&sd_access, ARG1,  0x00000000);
-	register_set(&sd_access, CMDTM, 0x00000000);
-	// TODO explain that this has the potential to get stuck if the interrupt happens
-	// after the load to access interrupt but before the wfi. also under the assumption
-	// that nothing else will interrupt this and it won't interrupt before the first sleep
-	while (!cast_reg(interrupt))
-		__asm__("wfi");
-	
-	mzero(&interrupt, sizeof(interrupt));
-
-	register_set(&sd_access, ARG1,  0x000001aa);
-	/*register_set(&sd_access, CMDTM, 8<<24|0b11<<19|0b10<<16);*/
-	register_set(&sd_access, CMDTM, 8<<24|0b10<<16);
-
-	while (!cast_reg(interrupt))
-		__asm__("wfi");
-	if (register_get(&sd_access, RESP0) == 0x000001aa)
-		signal_error(1);
-	else
-		signal_error(2);
-
-	/*struct {*/
-		/*bits_t chkpat : 8;*/
-		/*bits_t supply_voltage_vhs : 4;*/
-		/*bits_t reserved : 20;*/
-	/*} __attribute__((packed)) cmd8;*/
-	/*mzero(&cmd8, sizeof(cmd8));*/
-	/*cmd8.chkpat = 0b10101010;*/
-	/*cmd8.supply_voltage_vhs = 1;*/
-	/*issue_command(CMD_IDX_SEND_IF_COND, cast_bitfields(cmd8, uint32_t));*/
-
-	/*mmc_supply_clock();*/
-	/* Now in default speed mode. */
+	error = sd_issue_command(CMD_IDX_GO_IDLE_STATE, 0);
+	if (error != CMD_ERROR_NONE) {
+		/* TODO placeholder. */
+		signal_error(5);
+	}
+	error = sd_issue_cmd8();
+	if (error != CMD_ERROR_NONE) {
+		/* TODO placeholder. */
+		signal_error(5);
+	}
+	signal_error(1);
 }
 
-void sd_isr(void)
-{
-	/* Set global for use by non-ISR code. */
-	register_get_out(&sd_access, INTERRUPT, &interrupt);
-	/* Clear all high interrupts. */
-	register_set_ptr(&sd_access, INTERRUPT, &interrupt);
-}

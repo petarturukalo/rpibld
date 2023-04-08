@@ -27,4 +27,9 @@ void mzero(void *mem, int n);
  */
 void mcopy(void *src, void *dest, int n);
 
+/*
+ * Get whether n bytes of two memory areas are equal.
+ */
+bool mcmp(void *mem1, void *mem2, int n);
+
 #endif

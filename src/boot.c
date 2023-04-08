@@ -2,7 +2,7 @@
 #include "gic.h"
 #include "ic.h"
 #include "error.h"
-#include "sd.h" // TODO rm
+#include "sd/sd.h" // TODO rm
 #include "led.h" // TODO rm
 #include "debug.h" // TODO rm
 #include "timer.h" // TODO rm
@@ -18,8 +18,8 @@ void c_entry(void)
 	ic_enable_interrupts();
 
 	/* enable EMMC2 over old EMMC? */
+	// TODO did i need this? forgot to remove it
 	register_disable_bits(&gpio_access, UNNAMED, 1);
-	sleep(2);
 	sd_init();
 	/*sleep(1000);*/
 	/*sd_trigger_dummy_interrupt();*/
