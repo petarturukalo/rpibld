@@ -3,7 +3,7 @@
 #include "timer.h"
 #include "int.h"
 #include "led.h" // TODO rm
-#include "mmc.h"
+#include "sd.h"
 
 enum arm_local_registers {
 	IRQ_SOURCE0
@@ -45,10 +45,9 @@ void ic_enable_interrupts(void)
 /* Enable VideoCore interrupts: */
 	/* Enable system timer channel 1. */
 	register_set(&armc_access, IRQ0_SET_EN_0, 1<<1);
-	// TODO do i want SDHOST VC interrupt 56 or EMMC VC interrupt 62
-	// (enable both for now, but it's probably 62)
 	/* Enable MMC. */
-	// TODO know it's write-set but try register_enable_bits()
+	// TODO rm unused later on and comment what this is enabling (or name the shift)
+	register_set(&armc_access, IRQ0_SET_EN_1, 1<<3);
 	register_set(&armc_access, IRQ0_SET_EN_1, 1<<24);
 	register_set(&armc_access, IRQ0_SET_EN_1, 1<<30);
 }
@@ -71,6 +70,8 @@ static enum irq get_irq_source(void)
 			word_t pending1 = register_get(&armc_access, IRQ0_PENDING1);
 		
 			// TODO name these shifts duplicated here and in ic_enable_interrupts()
+			if (pending1&1<<3)
+				return IRQ_VC_SDC;
 			if (pending1&1<<24)
 				return IRQ_VC_SDHOST;
 			if (pending1&1<<30) 
@@ -88,13 +89,14 @@ void ic_irq_exception_handler(void)
 		case IRQ_VC_TIMER1:
 			timer_isr();
 			break;
+		case IRQ_VC_SDC:
 		case IRQ_VC_SDHOST:
 			/* TODO get rid of this interrupt if find it never gets triggered. */
 			led_init();
 			led_turn_on();
 			break;
 		case IRQ_VC_EMMC2:
-			mmc_dummy_isr();
+			sd_isr();
 			break;
 		default:
 		case IRQ_UNIMPLEMENTED:

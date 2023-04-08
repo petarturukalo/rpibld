@@ -10,7 +10,7 @@
  * Get the number of elements in an array (its length) when
  * the size of the array is known.
  */
-#define ARRAY_LEN(array) (sizeof(array)/sizeof(array[0]))
+#define array_len(array) (sizeof(array)/sizeof(array[0]))
 
 /*
  * Return the greater of two numbers.

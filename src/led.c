@@ -5,18 +5,13 @@
 #include "led.h"
 #include "mmio.h"
 
-enum gpio_registers {
-	GPFSEL4,
-	GPSET1,
-	GPCLR1
-};
-
 struct periph_access gpio_access = {
 	.periph_base_off = 0x2200000,
 	.register_offsets = {
 		[GPFSEL4] = 0x10,
 		[GPSET1]  = 0x20,
-		[GPCLR1]  = 0x2c
+		[GPCLR1]  = 0x2c,
+		[UNNAMED] = 0xd0
 	}
 };
 

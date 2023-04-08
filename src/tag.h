@@ -48,6 +48,13 @@ struct clock_state tag_clock_get_state(uint32_t clk_id);
 uint32_t tag_clock_get_rate(uint32_t clk_id);
 
 
+/*
+ * @GPIO_EXPANDER_VDD_SD_IO_SEL: supply for SD bus IO line power.
+ *	0 is 3.3V, 1 is 1.8V.
+ * @GPIO_EXPANDER_SD_PWR_ON: whether the SD card is supplied 3.3V power.
+ *	Note that the state of GPIO_EXPANDER_VDD_SD_IO_SEL does not affect
+ *	this - this remains fixed at 3.3V.
+ */
 enum gpio_expander_pin {
 	GPIO_EXPANDER_BT_ON,
 	GPIO_EXPANDER_WL_ON,

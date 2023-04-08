@@ -20,3 +20,8 @@ void mcopy(void *src, void *dest, int n)
 	for (int i = 0; i < n; ++i)
 		d[i] = s[i];
 }
+
+void copy_reg_to_bitfields(word_t reg, void *reg_struct)
+{
+	mcopy(&reg, reg_struct, sizeof(word_t));
+}

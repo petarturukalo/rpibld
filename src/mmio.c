@@ -1,4 +1,5 @@
 #include "mmio.h"
+#include "help.h"
 
 /*
  * Base address of main peripherals section in ARM low peripheral mode 
@@ -22,6 +23,13 @@ void register_set(struct periph_access *periph, int register_select, word_t valu
 	__asm__("dmb");
 }
 
+void register_set_ptr(struct periph_access *periph, int register_select, void *value)
+{
+	word_t val;
+	mcopy(value, &val, sizeof(word_t));
+	register_set(periph, register_select, val);
+}
+
 word_t register_get(struct periph_access *periph, int register_select)
 {
 	byte_t *periph_base_addr;
@@ -35,6 +43,12 @@ word_t register_get(struct periph_access *periph, int register_select)
 	ret = *(word_t *)(periph_base_addr+reg_off);
 	__asm__("dmb");
 	return ret;
+}
+
+void register_get_out(struct periph_access *periph, int register_select, void *out)
+{
+	word_t ret = register_get(periph, register_select);
+	mcopy(&ret, out, sizeof(word_t));
 }
 
 void register_enable_bits(struct periph_access *periph, int register_select, word_t mask)
