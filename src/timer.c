@@ -32,8 +32,7 @@ static struct periph_access timer_access = {
 };
 
 /* Control/status (CS) register fields. */
-#define CS_MATCH1_MASK 0x1
-#define CS_MATCH3_MASK 0x8
+#define CS_MATCH1 0x2
 
 
 /*
@@ -47,20 +46,11 @@ static struct periph_access timer_access = {
 /* Convert milliseconds to microseconds. */
 #define ms_to_us(ms) ms*COUNTER_CLK_CPMS
 
-/*
- * System timer channel 1 is used for sleeping and channel 3 is used for non-sleep
- * timer polling. The two are on separate channels so both can be used at the same
- * time.
- */
-static bool queued_timer1_irq_serviced;
-static bool queued_timer3_irq_serviced;
+static bool queued_timer_irq_serviced;
 
 /*
- * Queue an interrupt request on a system timer channel to trigger at a 
+ * Queue an interrupt request on a system timer channel 1 to trigger at a 
  * microseconds amount of time after the current time. 
- *
- * @compare_register: the system timer channel's compare register
- * @queued_timer_irq_serviced: out-param to set false to mark as awaiting servicing
  *
  * Only one interrupt can be "queued" at a time. If a second call is made 
  * to this without the first triggering an interrupt, the first queued interrupt 
@@ -69,50 +59,34 @@ static bool queued_timer3_irq_serviced;
  * queue another interrupt, an interrupt won't trigger until another 5 seconds has
  * passed (7 seconds total elapsed).
  */
-static void timer_queue_irq(int microseconds, enum timer_register compare_register,
-			    bool *queued_timer_irq_serviced)
+static void timer_queue_irq(int microseconds)
 {
 	int current_ticks = register_get(&timer_access, CLO);
 
-	*queued_timer_irq_serviced = false;
+	queued_timer_irq_serviced = false;
 	/* The system timer clock is 1 MHz so 1 tick is 1 microsecond here. */
-	register_set(&timer_access, compare_register, current_ticks + microseconds);
+	register_set(&timer_access, C1, current_ticks + microseconds);
 }
 
 /*
- * Service an interrupt request on a system timer channel by clearing the interrupt.
- *
- * @compare_register: the system timer channel's compare register
- * @cs_match_mask: bit mask for channel's match field in the CS register
- * @queued_timer_irq_serviced: out-param to set true to mark as being serviced
+ * Service an interrupt request on a system timer channel 1 by clearing the interrupt.
  */
-static void timer_isr(enum timer_register compare_register, int cs_match_mask, 
-		      bool *queued_timer_irq_serviced)
+void timer_isr(void)
 {	
 	/* Reset timer. */
-	register_set(&timer_access, compare_register, 0);
+	register_set(&timer_access, C1, 0);
 	/* Clear the interrupt. */
-	register_enable_bits(&timer_access, CS, cs_match_mask);
-	*queued_timer_irq_serviced = true;
-}
-
-void timer1_isr(void)
-{
-	timer_isr(C1, CS_MATCH1_MASK, &queued_timer1_irq_serviced);
-}
-
-void timer3_isr(void)
-{
-	timer_isr(C3, CS_MATCH3_MASK, &queued_timer3_irq_serviced);
+	register_enable_bits(&timer_access, CS, CS_MATCH1);
+	queued_timer_irq_serviced = true;
 }
 
 void usleep(int microseconds)
 {
-	timer_queue_irq(microseconds, C1, &queued_timer1_irq_serviced);
+	timer_queue_irq(microseconds);
 	/* Can only be woken up from a timer IRQ and not a different peripheral. */
 	do {
 		__asm__("wfi");
-	} while (!queued_timer1_irq_serviced);
+	} while (!queued_timer_irq_serviced);
 }
 
 void sleep(int milliseconds)
@@ -120,17 +94,14 @@ void sleep(int milliseconds)
 	usleep(ms_to_us(milliseconds));
 }
 
-void timer_poll_start(int milliseconds)
+void timer_poll_start(int milliseconds, struct timestamp *ts)
 {
-	timer_queue_irq(ms_to_us(milliseconds), C3, &queued_timer3_irq_serviced);
+	int current_ticks = register_get(&timer_access, CLO);
+	ts->timestamp = current_ticks+ms_to_us(milliseconds);
 }
 
-bool timer_poll_done(void)
+bool timer_poll_done(struct timestamp *ts)
 {
-	return queued_timer3_irq_serviced;
-}
-
-void timer_poll_stop(void)
-{
-	register_set(&timer_access, C3, 0);
+	int current_ticks = register_get(&timer_access, CLO);
+	return current_ticks >= ts->timestamp;
 }

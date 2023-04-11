@@ -25,7 +25,7 @@
  * 1. If many of the register's fields will be used, define a separate struct for each register named 
  * <register name>. The register's fields shall be represented using bit-field struct members. 
  * 2. If only a few of the register's fields will be used, #define shifts and/or masks for the register's 
- * fields, of name <register_name>_<field>_{SHIFT,MASK}.
+ * fields, of name <register_name>_<field>[_SHIFT].
  *
  * With either choice, the definitions should appear near the periph_access for the registers which
  * the definitions represent.

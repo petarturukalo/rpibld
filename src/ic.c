@@ -45,8 +45,6 @@ void ic_enable_interrupts(void)
 /* Enable VideoCore interrupts: */
 	/* Enable system timer channel 1. */
 	register_set(&armc_access, IRQ0_SET_EN_0, 1<<1);
-	/* Enable system timer channel 3. */
-	register_set(&armc_access, IRQ0_SET_EN_0, 1<<3);
 	/* Enable MMC. */
 	// TODO rm unused later on and comment what this is enabling (or name the shift)
 	register_set(&armc_access, IRQ0_SET_EN_1, 1<<3);
@@ -68,8 +66,6 @@ static enum irq get_irq_source(void)
 		if (pending2&1<<24) {
 			if (register_get(&armc_access, IRQ0_PENDING0)&1<<1) 
 				return IRQ_VC_TIMER1;
-			if (register_get(&armc_access, IRQ0_PENDING0)&1<<3) 
-				return IRQ_VC_TIMER3;
 		} else if (pending2&1<<25) {
 			word_t pending1 = register_get(&armc_access, IRQ0_PENDING1);
 		
@@ -91,10 +87,7 @@ void ic_irq_exception_handler(void)
 
 	switch (irq) {
 		case IRQ_VC_TIMER1:
-			timer1_isr();
-			break;
-		case IRQ_VC_TIMER3:
-			timer3_isr();
+			timer_isr();
 			break;
 		case IRQ_VC_SDC:
 		case IRQ_VC_SDHOST:

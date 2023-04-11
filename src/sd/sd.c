@@ -11,6 +11,7 @@
 #include "reg.h"
 #include "cmd.h"
 #include "../led.h"//TODO rm
+#include "../debug.h"//TODO rm
 
 /* 100 MHz. */
 #define EMMC2_EXPECTED_BASE_CLOCK_HZ 100000000
@@ -269,29 +270,56 @@ static void sd_enable_interrupts(void)
 static void sd_pre_cmd_init(void)
 {
 	sd_assert_vc_init();
-	/*sd_reset_host();*/
+	sd_reset_host();
 	sd_supply_bus_power();
+	/* 
+	 * TODO because some cards may have operating frequency restrictions during card identification
+	 * mode (pg 39/27)
+	 */
 	sd_supply_clock(IDENTIFICATION_CLOCK_RATE_HZ);
 	sd_enable_interrupts();
 }
 
-void sd_init(void)
+enum sd_error sd_init(void)
 {
-	enum command_error error;
+	enum cmd_error error;
+	struct card card;
+	bool ccs, cmd8_response;
+
+	mzero(&card, sizeof(card));
+	card.state = CARD_STATE_IDLE;
 
 	sd_pre_cmd_init();
-	/* TODO mention in 1-bit bus width 400 KHz mode? */
+	/* TODO mention in 1-bit bus width <= 400 KHz mode? */
 
-	error = sd_issue_command(CMD_IDX_GO_IDLE_STATE, 0);
-	if (error != CMD_ERROR_NONE) {
-		/* TODO placeholder. */
-		signal_error(5);
-	}
+	/* Command is issued assuming card supports 3.3V */
+	error = sd_issue_cmd(CMD_IDX_GO_IDLE_STATE, 0);
+	if (error != CMD_ERROR_NONE) 
+		return SD_ERROR_ISSUE_CMD;
+
+	/* Verify card supports 3.3V */
 	error = sd_issue_cmd8();
-	if (error != CMD_ERROR_NONE) {
-		/* TODO placeholder. */
-		signal_error(5);
-	}
+	if (error == CMD_ERROR_RESPONSE_CONTENTS)
+		return SD_ERROR_UNUSABLE_CARD;
+	if (error != CMD_ERROR_NONE && error != CMD_ERROR_WAIT_FOR_INTERRUPT_TIMEOUT) 
+		return SD_ERROR_ISSUE_CMD;
+	/* 
+	 * CMD8 was defined in phys layer version 2: only a version >= 2 card will respond.
+	 * No response is indicated by CMD_ERROR_WAIT_FOR_INTERRUPT_TIMEOUT.
+	 * TODO is CMD_ERROR_WAIT_FOR_INTERRUPT_TIMEOUT the correct way to test for no response?
+	 */
+	cmd8_response = error == CMD_ERROR_NONE;
+	card.version_2_or_later = cmd8_response;
+
+	/* Power up card. */
+	error = sd_issue_acmd41(cmd8_response, &ccs);
+	if (error == CMD_ERROR_RESPONSE_CONTENTS || error == CMD_ERROR_GENERAL_TIMEOUT) 
+		return SD_ERROR_UNUSABLE_CARD;
+	if (error != SD_ERROR_NONE) 
+		return SD_ERROR_ISSUE_CMD;
 	signal_error(1);
+	card.sdhc_or_sdxc = card.version_2_or_later && ccs;
+
+	card.state = CARD_STATE_READY;
 }
 

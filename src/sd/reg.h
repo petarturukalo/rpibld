@@ -93,6 +93,6 @@ struct interrupt {
 } __attribute__((packed));
 
 /* Status register fields. */
-#define STATUS_COMMAND_INHIBIT_CMD_MASK 0x1
+#define STATUS_COMMAND_INHIBIT_CMD 0x1
 
 #endif

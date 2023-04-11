@@ -17,9 +17,6 @@ void c_entry(void)
 	/*gic_init();*/
 	ic_enable_interrupts();
 
-	/* enable EMMC2 over old EMMC? */
-	// TODO did i need this? forgot to remove it
-	register_disable_bits(&gpio_access, UNNAMED, 1);
 	sd_init();
 	/*sleep(1000);*/
 	/*sd_trigger_dummy_interrupt();*/
