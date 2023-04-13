@@ -16,8 +16,7 @@ struct periph_access gpio_access = {
 	.register_offsets = {
 		[GPFSEL4] = 0x10,
 		[GPSET1]  = 0x20,
-		[GPCLR1]  = 0x2c,
-		[UNNAMED] = 0xd0
+		[GPCLR1]  = 0x2c
 	}
 };
 

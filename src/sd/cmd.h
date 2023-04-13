@@ -10,11 +10,13 @@
  * Index identifier for a command. 
  */
 enum cmd_index {
-	CMD_IDX_GO_IDLE_STATE    = 0,
-	CMD_IDX_SEND_IF_COND     = 8,  /* Send interface condition. */
-	CMD_IDX_APP_CMD          = 55,
+	CMD_IDX_GO_IDLE_STATE      = 0,
+	CMD_IDX_ALL_SEND_CID       = 2,
+	CMD_IDX_SEND_RELATIVE_ADDR = 3,
+	CMD_IDX_SEND_IF_COND       = 8,  /* Send interface condition. */
+	CMD_IDX_APP_CMD            = 55,
 /* Application commands. */
-	ACMD_IDX_SD_SEND_OP_COND = 41|IS_APP_CMD  /* Send operating condition register. */
+	ACMD_IDX_SD_SEND_OP_COND   = 41|IS_APP_CMD  /* Send operating condition register. */
 };
 
 /*
@@ -80,5 +82,11 @@ enum cmd_error sd_issue_cmd8(void);
  * - CMD_ERROR_GENERAL_TIMEOUT if the card did not power up in 1 second
  */
 enum cmd_error sd_issue_acmd41(bool host_capacity_support, bool *card_capacity_support_out);
+
+/*
+ * Issue command 3 to the SD card. If successful the card's new published relative
+ * card address is stored in out-param rca_out.
+ */
+enum cmd_error sd_issue_cmd3(int *rca_out);
 
 #endif

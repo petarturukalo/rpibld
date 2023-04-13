@@ -32,6 +32,7 @@ enum card_state {
 /* Data transfer operation mode. */
 	CARD_STATE_STANDBY,
 	CARD_STATE_TRANFSFER,
+// TODO if not going to use below states don't worry about setting states at all?
 	CARD_STATE_SENDING_DATA,
 	CARD_STATE_RECEIVE_DATA,
 	CARD_STATE_PROGRAMMING,
@@ -44,6 +45,7 @@ enum operation_mode {
 	OPMODE_DATA_TRANSFER
 };
 
+// TODO delete if unused (and other unused stuff)
 enum operation_mode card_state_opmode(enum card_state state)
 {
 	switch (state) {
@@ -72,11 +74,13 @@ enum operation_mode card_state_opmode(enum card_state state)
  *	SD) was defined in version 2, SDHC in version 2, and SDXC in version 3.
  * @sdhc_or_sdxc: whether the card is either of SDHC (high capacity) or SDXC
  *	(extended capacity). If false the card is SDSC (standard capacity).
+ * @rca: card's relative card address
  */
 struct card {
 	enum card_state state;
 	bool version_2_or_later;
 	bool sdhc_or_sdxc;
+	int rca;
 };
 
 
@@ -264,8 +268,7 @@ static void sd_enable_interrupts(void)
 }
 
 /*
- * Do all of the intialisation that must be done before being able to
- * successfully issue a command.
+ * Do all of the intialisation needed to issue a command successfully.
  */
 static void sd_pre_cmd_init(void)
 {
@@ -291,6 +294,7 @@ enum sd_error sd_init(void)
 
 	sd_pre_cmd_init();
 	/* TODO mention in 1-bit bus width <= 400 KHz mode? */
+	/* TODO mention below is card initialisation and identification process? */
 
 	/* Command is issued assuming card supports 3.3V */
 	error = sd_issue_cmd(CMD_IDX_GO_IDLE_STATE, 0);
@@ -315,11 +319,25 @@ enum sd_error sd_init(void)
 	error = sd_issue_acmd41(cmd8_response, &ccs);
 	if (error == CMD_ERROR_RESPONSE_CONTENTS || error == CMD_ERROR_GENERAL_TIMEOUT) 
 		return SD_ERROR_UNUSABLE_CARD;
-	if (error != SD_ERROR_NONE) 
+	if (error != CMD_ERROR_NONE) 
 		return SD_ERROR_ISSUE_CMD;
-	signal_error(1);
 	card.sdhc_or_sdxc = card.version_2_or_later && ccs;
 
 	card.state = CARD_STATE_READY;
+
+	/* Issue CMD2. */
+	error = sd_issue_cmd(CMD_IDX_ALL_SEND_CID, 0);
+	if (error != CMD_ERROR_NONE) 
+		return SD_ERROR_ISSUE_CMD;
+
+	card.state = CARD_STATE_IDENTIFICATION;
+
+	error = sd_issue_cmd3(&card.rca);
+	if (error != CMD_ERROR_NONE) 
+		return SD_ERROR_ISSUE_CMD;
+
+	card.state = CARD_STATE_STANDBY;
+
+	signal_error(2);
 }
 

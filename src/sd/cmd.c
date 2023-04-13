@@ -85,10 +85,12 @@ struct command {
 };
 
 struct command commands[] = {
-	{ CMD_IDX_GO_IDLE_STATE,    CMD_TYPE_BC,  RESPONSE_NONE },
-	{ CMD_IDX_SEND_IF_COND,     CMD_TYPE_BCR, RESPONSE_R7_CARD_INTERFACE_CONDITION },
-	{ CMD_IDX_APP_CMD,	    CMD_TYPE_AC,  RESPONSE_R1_NORMAL },
-	{ ACMD_IDX_SD_SEND_OP_COND, CMD_TYPE_BCR, RESPONSE_R3_OCR_REG }
+	{ CMD_IDX_GO_IDLE_STATE,      CMD_TYPE_BC,  RESPONSE_NONE },
+	{ CMD_IDX_ALL_SEND_CID,       CMD_TYPE_BCR, RESPONSE_R2_CID_OR_CSD_REG },
+	{ CMD_IDX_SEND_RELATIVE_ADDR, CMD_TYPE_BCR, RESPONSE_R6_PUBLISHED_RCA },
+	{ CMD_IDX_SEND_IF_COND,       CMD_TYPE_BCR, RESPONSE_R7_CARD_INTERFACE_CONDITION },
+	{ CMD_IDX_APP_CMD,            CMD_TYPE_AC,  RESPONSE_R1_NORMAL },
+	{ ACMD_IDX_SD_SEND_OP_COND,   CMD_TYPE_BCR, RESPONSE_R3_OCR_REG }
 };
 
 static struct command *get_command(enum cmd_index idx)
@@ -343,4 +345,20 @@ enum cmd_error sd_issue_acmd41(bool host_capacity_support, bool *card_capacity_s
 		return CMD_ERROR_NONE;
 	}
 	return CMD_ERROR_GENERAL_TIMEOUT;
+}
+
+enum cmd_error sd_issue_cmd3(int *rca_out)
+{
+	struct {
+		bits_t unused : 16;
+		bits_t rca : 16;
+	} resp;
+	enum cmd_error error;
+
+	error = sd_issue_cmd(CMD_IDX_SEND_RELATIVE_ADDR, 0);
+	if (error == CMD_ERROR_NONE) {
+		register_get_out(&sd_access, RESP0, &resp);
+		*rca_out = resp.rca;
+	}
+	return error;
 }

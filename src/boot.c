@@ -18,6 +18,7 @@ void c_entry(void)
 	ic_enable_interrupts();
 
 	sd_init();
+	signal_error(1);
 	/*sleep(1000);*/
 	/*sd_trigger_dummy_interrupt();*/
 
