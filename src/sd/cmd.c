@@ -6,39 +6,14 @@
 #include "../error.h"// TODO rm
 #include "../led.h"// TODO rm
 
-/* 
- * Card status response from RESPONSE_R1_NORMAL. 
- * @app_cmd: signals whether it expects the next issued command to
- *	be an application command
- * TODO mv this somewhere else?
+/*
+ * Arguments used by some addressed commands requiring
+ * a relative card address as input.
  */
-struct card_status {
-	bits_t reserved1 : 3;
-	bits_t ake_seq_error : 1;
-	bits_t reserved2 : 1;
-	bits_t app_cmd : 1;
-	bits_t reserved3 : 2;
-	bits_t ready_for_data : 1;
-	bits_t current_state : 4;
-	bits_t erase_reset : 1;
-	bits_t card_ecc_disabled : 1;
-	bits_t wp_erase_skip : 1;
-	bits_t csd_overwrite : 1;
-	bits_t reserved4 : 2;
-	bits_t error : 1;
-	bits_t cc_error : 1;
-	bits_t card_ecc_failed : 1;
-	bits_t illegal_command : 1;
-	bits_t com_crc_error : 1;
-	bits_t lock_unlock_failed : 1;
-	bits_t card_is_locked : 1;
-	bits_t wp_violation : 1;
-	bits_t erase_param : 1;
-	bits_t erase_seq_error : 1;
-	bits_t block_len_error : 1;
-	bits_t address_error : 1;
-	bits_t out_of_range : 1;
-};
+struct ac_rca_args {
+	bits_t unused : 16;
+	bits_t rca : 16;
+} __attribute__((packed));
 
 /*
  * @CMD_TYPE_BC: broadcast: broadcast the command to all cards. 
@@ -88,8 +63,11 @@ struct command commands[] = {
 	{ CMD_IDX_GO_IDLE_STATE,      CMD_TYPE_BC,  RESPONSE_NONE },
 	{ CMD_IDX_ALL_SEND_CID,       CMD_TYPE_BCR, RESPONSE_R2_CID_OR_CSD_REG },
 	{ CMD_IDX_SEND_RELATIVE_ADDR, CMD_TYPE_BCR, RESPONSE_R6_PUBLISHED_RCA },
+	{ CMD_IDX_SELECT_CARD,	      CMD_TYPE_AC,  RESPONSE_R1B_NORMAL_BUSY },
 	{ CMD_IDX_SEND_IF_COND,       CMD_TYPE_BCR, RESPONSE_R7_CARD_INTERFACE_CONDITION },
+	{ CMD_IDX_SEND_STATUS,	      CMD_TYPE_AC,  RESPONSE_R1_NORMAL },
 	{ CMD_IDX_APP_CMD,            CMD_TYPE_AC,  RESPONSE_R1_NORMAL },
+	{ ACMD_IDX_SET_BUS_WIDTH,     CMD_TYPE_AC,  RESPONSE_R1_NORMAL },
 	{ ACMD_IDX_SD_SEND_OP_COND,   CMD_TYPE_BCR, RESPONSE_R3_OCR_REG }
 };
 
@@ -188,26 +166,25 @@ static bool sd_wait_for_interrupt(void)
 
 enum cmd_error sd_issue_cmd(enum cmd_index idx, uint32_t args)
 {
-	/* 
-	 * TODO current implementation is only for no data transfer commands.
-	 * will need to refactor later on when using data transfer commands.
-	 */
 	struct command *cmd;
 	struct cmdtm cmdtm;
 	bool timeout;
+	uint32_t status;
 
 	cmd = get_command(idx);
 	if (!cmd) 
 		return CMD_ERROR_COMMAND_UNIMPLEMENTED;
-	if (register_get(&sd_access, STATUS)&STATUS_COMMAND_INHIBIT_CMD) 
+	status = register_get(&sd_access, STATUS);
+	if (status&STATUS_COMMAND_INHIBIT_CMD) 
 		return CMD_ERROR_COMMAND_INHIBIT_CMD_BIT_SET;
 	/* 
-	 * TODO if issuing a SD cmd with busy signal that isn't the (an?) abort command
-	 * then need to check command inhibit DAT line as well 
+	 * Note if implement an abort command such as CMD12 then need to let it skip this step
+	 * (and then delete this comment).
 	 */
+	if (cmd->response == RESPONSE_R1B_NORMAL_BUSY && status&STATUS_COMMAND_INHIBIT_DAT) 
+		return CMD_ERROR_COMMAND_INHIBIT_CMD_BIT_SET;
 
-	/* TODO need to use ARG2 if it's ACMD23 */
-	/* Set the command's arguments. */
+	/* Set the command's arguments. Note if implement ACMD23 it needs to use ARG2 instead. */
 	register_set(&sd_access, ARG1, args);
 
 	sd_set_cmdtm(cmd, &cmdtm);
@@ -223,7 +200,7 @@ enum cmd_error sd_issue_cmd(enum cmd_index idx, uint32_t args)
 		return CMD_ERROR_ERROR_INTERRUPT;
 	if (!interrupt.cmd_complete) 
 		return CMD_ERROR_NO_COMMAND_COMPLETE_INTERRUPT;
-	/* TODO if cmd uses transfer complete interrupt then need to wait for that */
+	/* TODO if cmd uses transfer complete interrupt then need to wait for that (or can be done in wrapper) */
 	return CMD_ERROR_NONE;
 }
 
@@ -237,10 +214,8 @@ void sd_isr(void)
 
 enum cmd_error sd_issue_acmd(enum cmd_index idx, uint32_t args, int rca)
 {
-	struct {
-		bits_t rca : 16;
-		bits_t unused : 16;
-	} __attribute__((packed)) cmd55_args;
+	/* TODO this was rca 16, unused 16 (wrong?). don't know how it worked before. */
+	struct ac_rca_args cmd55_args;
 	enum cmd_error error;
 	struct card_status cs;
 
@@ -352,7 +327,7 @@ enum cmd_error sd_issue_cmd3(int *rca_out)
 	struct {
 		bits_t unused : 16;
 		bits_t rca : 16;
-	} resp;
+	} __attribute((packed)) resp;
 	enum cmd_error error;
 
 	error = sd_issue_cmd(CMD_IDX_SEND_RELATIVE_ADDR, 0);
@@ -361,4 +336,47 @@ enum cmd_error sd_issue_cmd3(int *rca_out)
 		*rca_out = resp.rca;
 	}
 	return error;
+}
+
+enum cmd_error sd_issue_cmd7(int rca)
+{
+	struct ac_rca_args args;
+	enum cmd_error error;
+
+	mzero(&args, sizeof(args));
+	args.rca = rca;
+
+	return sd_issue_cmd(CMD_IDX_SELECT_CARD, cast_bitfields(args, uint32_t));
+}
+
+enum cmd_error sd_issue_cmd13(int rca, struct card_status *cs_out)
+{
+	struct ac_rca_args args;
+	enum cmd_error error;
+
+	mzero(&args, sizeof(args));
+	args.rca = rca;
+
+	error = sd_issue_cmd(CMD_IDX_SEND_STATUS, cast_bitfields(args, uint32_t));
+	if (error == CMD_ERROR_NONE) 
+		register_get_out(&sd_access, RESP0, cs_out);
+	return error;
+}
+
+enum cmd_error sd_issue_acmd6(int rca, bool four_bit)
+{
+	struct {
+		enum {
+			ACMD6_BUS_WIDTH_1BIT = 0b00,
+			ACMD6_BUS_WIDTH_4BIT = 0b10
+		} bus_width : 2;
+		bits_t unused : 30;
+	} __attribute__((packed)) args;
+	enum cmd_error error;
+
+	mzero(&args, sizeof(args));
+	args.bus_width = four_bit ? ACMD6_BUS_WIDTH_4BIT : ACMD6_BUS_WIDTH_1BIT;
+
+	return sd_issue_acmd(ACMD_IDX_SET_BUS_WIDTH, cast_bitfields(args, uint32_t), rca);
+	// TODO need to check error in R1 response?
 }

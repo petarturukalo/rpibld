@@ -16,7 +16,9 @@ enum sd_error {
 };
 
 /*
- * TODO document this after finished
+ * Initialise the inserted SD card so that it is ready for data
+ * transfer with TODO mention sd read/write fns. The card is 
+ * initialised to 4-bit data bus width, default speed bus mode.
  */
 enum sd_error sd_init(void);
 

@@ -13,12 +13,16 @@
  */
 void c_entry(void)
 {
+	enum sd_error error;
+
 	enable_interrupts();
 	/*gic_init();*/
 	ic_enable_interrupts();
 
-	sd_init();
-	signal_error(1);
+	error = sd_init();
+	if (error != SD_ERROR_NONE)
+		signal_error(ERROR_SD_INIT);
+
 	/*sleep(1000);*/
 	/*sd_trigger_dummy_interrupt();*/
 

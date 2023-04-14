@@ -5,11 +5,13 @@
  * @ERROR_VCMAILBOX: error using the VideoCore mailbox
  * @ERROR_VC_NOT_INIT_MMC: the VideoCore firmware didn't intialise
  *	MMC as expected (see mmc_assert_vc_init() for more info)
+ * @ERROR_SD_INIT: failed to initialise the SD card with call to sd_init()
  */
 enum error_code {
 	/* Ensure these are set to an explicit value to know how many times it beeps. */
-	ERROR_VCMAILBOX = 1,
-	ERROR_VC_NOT_INIT_MMC = 2
+	ERROR_VCMAILBOX       = 1,
+	ERROR_VC_NOT_INIT_MMC = 2,
+	ERROR_SD_INIT         = 3
 };
 
 /*

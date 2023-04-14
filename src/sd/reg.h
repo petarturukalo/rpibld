@@ -94,5 +94,6 @@ struct interrupt {
 
 /* Status register fields. */
 #define STATUS_COMMAND_INHIBIT_CMD 0x1
+#define STATUS_COMMAND_INHIBIT_DAT 0x2
 
 #endif

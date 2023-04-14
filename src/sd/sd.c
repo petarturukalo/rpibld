@@ -12,6 +12,7 @@
 #include "cmd.h"
 #include "../led.h"//TODO rm
 #include "../debug.h"//TODO rm
+#include "../timer.h"//TODO rm
 
 /* 100 MHz. */
 #define EMMC2_EXPECTED_BASE_CLOCK_HZ 100000000
@@ -20,11 +21,13 @@
  * and during the card identification process.
  */
 #define IDENTIFICATION_CLOCK_RATE_HZ	400000
+/* 25 MHz. */
+#define DEFAULT_SPEED_CLOCK_RATE_HZ   25000000
 
-
+// TODO don't like this here, put it back in sd.c/h or a new card related file?
 enum card_state {
 /* Inactive operation mode. */
-	CARD_STATE_INACTIVE,
+	CARD_STATE_INACTIVE = -1,
 /* Card identification operation mode. */
 	CARD_STATE_IDLE,
 	CARD_STATE_READY,
@@ -197,13 +200,15 @@ static int sd_8bit_clock_divider(int base_rate, int target_rate)
 }
 
 /*
- * Supply the clock at the given clock rate to the card.
+ * Supply the clock at the given clock rate (in Hz) to the card.
  */
 static void sd_supply_clock(int clock_rate)
 {
 	// TODO explain why using 8-bit clock divider (if even needed)
 	int clock_divider = sd_8bit_clock_divider(EMMC2_EXPECTED_BASE_CLOCK_HZ, clock_rate);
 
+	/* Turn off clock in case it was already on (required to change frequency). */
+	register_disable_bits(&sd_access, CONTROL1, 0b111);
 	/* Set clock divider and enable internal clock. */
 	register_enable_bits(&sd_access, CONTROL1, clock_divider<<8|1);
 	/* 
@@ -216,17 +221,6 @@ static void sd_supply_clock(int clock_rate)
 	register_enable_bits(&sd_access, CONTROL1, 1<<2);
 }
 
-/*
- * Supply the clock to the card. Given that this is called after sd_assert_vc_init()
- * it can safely be assumed that the base clock is 100 MHz and that 3.3V power is being
- * supplied. 
- *
- * The only two bus speed modes supported at 3.3V are default speed and high speed. Default
- * speed has a max clock speed of 25 MHz, and high speed 50 MHz. High speed mode requires
- * setting a register field to use; because the register fields relevant to bus speed modes
- * are reset to 0x0 on boot, default speed can be assumed, and so the base 100 MHz clock rate 
- * is divided to get a 25 MHz rate.
- */
 static void sd_supply_clock_tmp(void)
 {
 	// TODO don't use this. delete after sd_supply_clock() called with 25 MHz so can move
@@ -276,32 +270,30 @@ static void sd_pre_cmd_init(void)
 	sd_reset_host();
 	sd_supply_bus_power();
 	/* 
-	 * TODO because some cards may have operating frequency restrictions during card identification
-	 * mode (pg 39/27)
+	 * Set clock frequency to 400 KHz for the card initialisation and identification 
+	 * period as some cards may have operating frequency restrictions during it.
+	 * TODO test this with different cards?
 	 */
 	sd_supply_clock(IDENTIFICATION_CLOCK_RATE_HZ);
 	sd_enable_interrupts();
 }
 
-enum sd_error sd_init(void)
+/*
+ * Go through the card intialisation and identification process, moving the card
+ * from the start of card identification mode to the start of data transfer mode.
+ */
+static enum sd_error sd_card_init_and_identify(struct card *card)
 {
 	enum cmd_error error;
-	struct card card;
 	bool ccs, cmd8_response;
 
-	mzero(&card, sizeof(card));
-	card.state = CARD_STATE_IDLE;
-
-	sd_pre_cmd_init();
-	/* TODO mention in 1-bit bus width <= 400 KHz mode? */
-	/* TODO mention below is card initialisation and identification process? */
+	card->state = CARD_STATE_IDLE;
 
 	/* Command is issued assuming card supports 3.3V */
 	error = sd_issue_cmd(CMD_IDX_GO_IDLE_STATE, 0);
 	if (error != CMD_ERROR_NONE) 
 		return SD_ERROR_ISSUE_CMD;
 
-	/* Verify card supports 3.3V */
 	error = sd_issue_cmd8();
 	if (error == CMD_ERROR_RESPONSE_CONTENTS)
 		return SD_ERROR_UNUSABLE_CARD;
@@ -311,33 +303,92 @@ enum sd_error sd_init(void)
 	 * CMD8 was defined in phys layer version 2: only a version >= 2 card will respond.
 	 * No response is indicated by CMD_ERROR_WAIT_FOR_INTERRUPT_TIMEOUT.
 	 * TODO is CMD_ERROR_WAIT_FOR_INTERRUPT_TIMEOUT the correct way to test for no response?
+	 * (need to get a version < 2 card to test with)
 	 */
 	cmd8_response = error == CMD_ERROR_NONE;
-	card.version_2_or_later = cmd8_response;
+	card->version_2_or_later = cmd8_response;
 
-	/* Power up card. */
 	error = sd_issue_acmd41(cmd8_response, &ccs);
 	if (error == CMD_ERROR_RESPONSE_CONTENTS || error == CMD_ERROR_GENERAL_TIMEOUT) 
 		return SD_ERROR_UNUSABLE_CARD;
 	if (error != CMD_ERROR_NONE) 
 		return SD_ERROR_ISSUE_CMD;
-	card.sdhc_or_sdxc = card.version_2_or_later && ccs;
+	card->sdhc_or_sdxc = card->version_2_or_later && ccs;
 
-	card.state = CARD_STATE_READY;
+	card->state = CARD_STATE_READY;
 
 	/* Issue CMD2. */
 	error = sd_issue_cmd(CMD_IDX_ALL_SEND_CID, 0);
 	if (error != CMD_ERROR_NONE) 
 		return SD_ERROR_ISSUE_CMD;
 
-	card.state = CARD_STATE_IDENTIFICATION;
+	card->state = CARD_STATE_IDENTIFICATION;
 
-	error = sd_issue_cmd3(&card.rca);
+	error = sd_issue_cmd3(&card->rca);
 	if (error != CMD_ERROR_NONE) 
 		return SD_ERROR_ISSUE_CMD;
 
-	card.state = CARD_STATE_STANDBY;
+	card->state = CARD_STATE_STANDBY;
+	return SD_ERROR_NONE;
+}
 
-	signal_error(2);
+static enum sd_error sd_set_4bit_data_bus_width(int rca)
+{
+	uint32_t prev_irpt_mask = register_get(&sd_access, IRPT_MASK);
+	enum cmd_error error;
+
+	/* Mask incorrect interrupts that may occur while changing bus width. */
+	register_disable_bits(&sd_access, IRPT_MASK, 1<<8);
+
+	/* Change card to 4-bit data bus width. */
+	error = sd_issue_acmd6(rca, true);
+	if (error == CMD_ERROR_NONE) {
+		/* Change host to 4-bit data bus width. */
+		register_enable_bits(&sd_access, CONTROL0, 1<<1);
+	}
+	register_set(&sd_access, IRPT_MASK, prev_irpt_mask);
+	return error == CMD_ERROR_NONE ? SD_ERROR_NONE : SD_ERROR_ISSUE_CMD;
+}
+
+enum sd_error sd_init(void)
+{
+	enum sd_error sd_error;
+	struct card card;
+	enum cmd_error cmd_error;
+	struct card_status cs;
+
+	mzero(&card, sizeof(card));
+
+	sd_pre_cmd_init();
+	/* After sd_pre_cmd_init() have a 1-bit data bus width and <= 400 KHz clock. */
+	sd_error = sd_card_init_and_identify(&card);
+	if (sd_error != SD_ERROR_NONE)
+		return sd_error;
+
+	/*
+	 * Given that this is called after sd_assert_vc_init() it can safely be assumed 
+	 * that 3.3V power is being supplied. The only two bus speed modes supported at 
+	 * 3.3V are default speed and high speed. Default speed has a max clock speed of 
+	 * 25 MHz, and high speed 50 MHz. High speed mode requires setting a register 
+	 * field to use; because the register fields relevant to bus speed modes are reset 
+	 * to 0x0 on boot, default speed can be assumed - change the clock to 25 MHz for 
+	 * default speed.
+	 */
+	// TODO confirm new clock gets set up correctly
+	sd_supply_clock(DEFAULT_SPEED_CLOCK_RATE_HZ);
+
+	/* Put card in transfer state. */
+	cmd_error = sd_issue_cmd7(card.rca);
+	if (cmd_error != CMD_ERROR_NONE) 
+		return SD_ERROR_ISSUE_CMD;
+	/* Verify card got put into transfer state. */
+	cmd_error = sd_issue_cmd13(card.rca, &cs);
+	// TODO cs.error? refer TODO in cmd.c cs.error
+	if (cmd_error != CMD_ERROR_NONE || cs.error || cs.current_state != CARD_STATE_TRANFSFER) 
+		return SD_ERROR_ISSUE_CMD;
+
+	card.state = CARD_STATE_TRANFSFER;
+
+	return sd_set_4bit_data_bus_width(card.rca);
 }
 
