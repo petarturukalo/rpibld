@@ -20,8 +20,11 @@ void c_entry(void)
 	ic_enable_interrupts();
 
 	error = sd_init();
-	if (error != SD_ERROR_NONE)
-		signal_error(ERROR_SD_INIT);
+	if (error != SD_ERROR_NONE) {
+		signal_error(1);
+		/*signal_error(ERROR_SD_INIT);*/
+	}
+	signal_error(2);
 
 	/*sleep(1000);*/
 	/*sd_trigger_dummy_interrupt();*/

@@ -157,8 +157,8 @@ static void sd_assert_vc_init(void)
  */
 static void sd_reset_host(void)
 {
-	register_enable_bits(&sd_access, CONTROL1, 1<<24);
-	while (register_get(&sd_access, CONTROL1)&1<<24)
+	register_enable_bits(&sd_access, CONTROL1, CONTROL1_SW_RESET_HC);
+	while (register_get(&sd_access, CONTROL1)&CONTROL1_SW_RESET_HC)
 		;
 }
 
@@ -171,13 +171,9 @@ static void sd_reset_host(void)
  */
 static void sd_supply_bus_power(void)
 {
-	/*
-	 * The BCM2835 datasheet lists these bits as reserved, but from the
-	 * SD Host Controller spec they make up the power control register.
-	 * TODO use defines or struct so know what the the 0xf doing:
-	 * selecting 3.3V and turning power on
-	 */
-	register_enable_bits(&sd_access, CONTROL0, 0xf<<8);
+	uint32_t pwr_ctl_bits = (PWR_CTL_SD_BUS_VOLT_SEL_3V3|PWR_CTL_SD_BUS_POWER);
+
+	register_enable_bits(&sd_access, CONTROL0, pwr_ctl_bits<<CONTROL0_PWR_CTL_SHIFT);
 }
 
 /*
@@ -208,39 +204,18 @@ static void sd_supply_clock(int clock_rate)
 	int clock_divider = sd_8bit_clock_divider(EMMC2_EXPECTED_BASE_CLOCK_HZ, clock_rate);
 
 	/* Turn off clock in case it was already on (required to change frequency). */
-	register_disable_bits(&sd_access, CONTROL1, 0b111);
+	register_disable_bits(&sd_access, CONTROL1, CONTROL1_CLK_EN_BITS);
 	/* Set clock divider and enable internal clock. */
-	register_enable_bits(&sd_access, CONTROL1, clock_divider<<8|1);
+	register_enable_bits(&sd_access, CONTROL1, 
+			     clock_divider<<CONTROL1_CLK_FREQ_SEL_SHIFT | CONTROL1_INT_CLK_EN);
 	/* 
 	 * Wait for internal clock to become stable. From testing this only takes 
 	 * around 5 iterations, so don't bother sleeping. 
 	 */
-	while (!(register_get(&sd_access, CONTROL1)&1<<1)) 
+	while (!(register_get(&sd_access, CONTROL1)&CONTROL1_INT_CLK_STABLE)) 
 		;
 	/* Enable clock. */
-	register_enable_bits(&sd_access, CONTROL1, 1<<2);
-}
-
-static void sd_supply_clock_tmp(void)
-{
-	// TODO don't use this. delete after sd_supply_clock() called with 25 MHz so can move
-	// these comments there
-	/*
-	 * The host controller uses a 10-bit divided clock mode. A value of N defined across the
-	 * fields that make up the 10 bits results in the base clock being divided by 2N. The base
-	 * clock is 100 MHz but want 25 MHz, so set the clock divider to 4 by setting N to 2 (0b10).
-	 */
-	register_enable_bits(&sd_access, CONTROL1, 0b10<<8);
-	/* Enable internal clock. */
-	register_enable_bits(&sd_access, CONTROL1, 1);
-	/* 
-	 * Wait for internal clock to become stable. From testing this only takes 
-	 * around 5 iterations, so don't bother sleeping. 
-	 */
-	while (!(register_get(&sd_access, CONTROL1)&1<<1)) 
-		;
-	/* Enable clock. */
-	register_enable_bits(&sd_access, CONTROL1, 1<<2);
+	register_enable_bits(&sd_access, CONTROL1, CONTROL1_CLK_EN);
 }
 
 static void sd_enable_interrupts(void)
@@ -334,17 +309,21 @@ static enum sd_error sd_card_init_and_identify(struct card *card)
 
 static enum sd_error sd_set_4bit_data_bus_width(int rca)
 {
-	uint32_t prev_irpt_mask = register_get(&sd_access, IRPT_MASK);
+	struct interrupt irpt_mask;
 	enum cmd_error error;
+	uint32_t prev_irpt_mask = register_get(&sd_access, IRPT_MASK);
+
+	mzero(&irpt_mask, sizeof(irpt_mask));
 
 	/* Mask incorrect interrupts that may occur while changing bus width. */
-	register_disable_bits(&sd_access, IRPT_MASK, 1<<8);
+	irpt_mask.card = 1;
+	register_disable_bits(&sd_access, IRPT_MASK, cast_bitfields(irpt_mask, uint32_t));
 
 	/* Change card to 4-bit data bus width. */
 	error = sd_issue_acmd6(rca, true);
 	if (error == CMD_ERROR_NONE) {
 		/* Change host to 4-bit data bus width. */
-		register_enable_bits(&sd_access, CONTROL0, 1<<1);
+		register_enable_bits(&sd_access, CONTROL0, CONTROL0_DATA_TRANSFER_WIDTH);
 	}
 	register_set(&sd_access, IRPT_MASK, prev_irpt_mask);
 	return error == CMD_ERROR_NONE ? SD_ERROR_NONE : SD_ERROR_ISSUE_CMD;

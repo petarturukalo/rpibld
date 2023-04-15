@@ -96,4 +96,28 @@ struct interrupt {
 #define STATUS_COMMAND_INHIBIT_CMD 0x1
 #define STATUS_COMMAND_INHIBIT_DAT 0x2
 
+/* Control 0 register fields. */
+#define CONTROL0_DATA_TRANSFER_WIDTH 0x2
+/*
+ * The BCM2835 datasheet lists the below power control bits as reserved, 
+ * but from the SD Host Controller spec they make up the power control 
+ * register.
+ */
+#define CONTROL0_PWR_CTL_SHIFT 0x8
+/* Power control register fields. */
+/* Voltage select. */
+#define PWR_CTL_SD_BUS_VOLT_SEL_3V3 0b1110
+#define PWR_CTL_SD_BUS_POWER        0b0001
+
+/* Control 1 register fields. */
+/* Mask for clock enable, internal clock stable, internal clock enable. */
+#define CONTROL1_CLK_EN_BITS 0b111
+#define CONTROL1_INT_CLK_EN     0x1
+#define CONTROL1_INT_CLK_STABLE 0x2
+#define CONTROL1_CLK_EN         0x4
+/* SD clock frequency select shift. */
+#define CONTROL1_CLK_FREQ_SEL_SHIFT 0x8
+/* Software reset host controller. */
+#define CONTROL1_SW_RESET_HC 0x1000000
+
 #endif
