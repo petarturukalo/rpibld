@@ -214,7 +214,7 @@ static void sd_pre_cmd_init(void)
  * Go through the card intialisation and identification process, moving the card
  * from the start of card identification mode to the start of data transfer mode.
  */
-static enum sd_error sd_card_init_and_identify(struct card *card)
+static enum sd_init_error sd_card_init_and_identify(struct card *card)
 {
 	enum cmd_error error;
 	bool ccs, cmd8_response;
@@ -224,13 +224,13 @@ static enum sd_error sd_card_init_and_identify(struct card *card)
 	/* Command is issued assuming card supports 3.3V */
 	error = sd_issue_cmd(CMD_IDX_GO_IDLE_STATE, 0);
 	if (error != CMD_ERROR_NONE) 
-		return SD_ERROR_ISSUE_CMD;
+		return SD_INIT_ERROR_ISSUE_CMD;
 
 	error = sd_issue_cmd8();
 	if (error == CMD_ERROR_RESPONSE_CONTENTS)
-		return SD_ERROR_UNUSABLE_CARD;
+		return SD_INIT_ERROR_UNUSABLE_CARD;
 	if (error != CMD_ERROR_NONE && error != CMD_ERROR_WAIT_FOR_INTERRUPT_TIMEOUT) 
-		return SD_ERROR_ISSUE_CMD;
+		return SD_INIT_ERROR_ISSUE_CMD;
 	/* 
 	 * CMD8 was defined in phys layer version 2: only a version >= 2 card will respond.
 	 * No response is indicated by CMD_ERROR_WAIT_FOR_INTERRUPT_TIMEOUT.
@@ -242,9 +242,9 @@ static enum sd_error sd_card_init_and_identify(struct card *card)
 
 	error = sd_issue_acmd41(cmd8_response, &ccs);
 	if (error == CMD_ERROR_RESPONSE_CONTENTS || error == CMD_ERROR_GENERAL_TIMEOUT) 
-		return SD_ERROR_UNUSABLE_CARD;
+		return SD_INIT_ERROR_UNUSABLE_CARD;
 	if (error != CMD_ERROR_NONE) 
-		return SD_ERROR_ISSUE_CMD;
+		return SD_INIT_ERROR_ISSUE_CMD;
 	card->sdhc_or_sdxc = card->version_2_or_later && ccs;
 
 	card->state = CARD_STATE_READY;
@@ -252,19 +252,19 @@ static enum sd_error sd_card_init_and_identify(struct card *card)
 	/* Issue CMD2. */
 	error = sd_issue_cmd(CMD_IDX_ALL_SEND_CID, 0);
 	if (error != CMD_ERROR_NONE) 
-		return SD_ERROR_ISSUE_CMD;
+		return SD_INIT_ERROR_ISSUE_CMD;
 
 	card->state = CARD_STATE_IDENTIFICATION;
 
 	error = sd_issue_cmd3(&card->rca);
 	if (error != CMD_ERROR_NONE) 
-		return SD_ERROR_ISSUE_CMD;
+		return SD_INIT_ERROR_ISSUE_CMD;
 
 	card->state = CARD_STATE_STANDBY;
-	return SD_ERROR_NONE;
+	return SD_INIT_ERROR_NONE;
 }
 
-static enum sd_error sd_set_4bit_data_bus_width(int rca)
+static enum sd_init_error sd_set_4bit_data_bus_width(int rca)
 {
 	struct interrupt irpt_mask;
 	enum cmd_error error;
@@ -283,12 +283,12 @@ static enum sd_error sd_set_4bit_data_bus_width(int rca)
 		register_enable_bits(&sd_access, CONTROL0, CONTROL0_DATA_TRANSFER_WIDTH);
 	}
 	register_set(&sd_access, IRPT_MASK, prev_irpt_mask);
-	return error == CMD_ERROR_NONE ? SD_ERROR_NONE : SD_ERROR_ISSUE_CMD;
+	return error == CMD_ERROR_NONE ? SD_INIT_ERROR_NONE : SD_INIT_ERROR_ISSUE_CMD;
 }
 
-enum sd_error sd_init(struct card *card_out)
+enum sd_init_error sd_init(struct card *card_out)
 {
-	enum sd_error sd_error;
+	enum sd_init_error sd_init_error;
 	enum cmd_error cmd_error;
 	struct card_status cs;
 
@@ -296,9 +296,9 @@ enum sd_error sd_init(struct card *card_out)
 
 	sd_pre_cmd_init();
 	/* After sd_pre_cmd_init() have a 1-bit data bus width and <= 400 KHz clock. */
-	sd_error = sd_card_init_and_identify(card_out);
-	if (sd_error != SD_ERROR_NONE)
-		return sd_error;
+	sd_init_error = sd_card_init_and_identify(card_out);
+	if (sd_init_error != SD_INIT_ERROR_NONE)
+		return sd_init_error;
 
 	/*
 	 * Given that this is called after sd_assert_vc_init() it can safely be assumed 
@@ -315,21 +315,20 @@ enum sd_error sd_init(struct card *card_out)
 	/* Put card in transfer state. */
 	cmd_error = sd_issue_cmd7(card_out->rca);
 	if (cmd_error != CMD_ERROR_NONE) 
-		return SD_ERROR_ISSUE_CMD;
+		return SD_INIT_ERROR_ISSUE_CMD;
 	/* Verify card got put into transfer state. */
 	cmd_error = sd_issue_cmd13(card_out->rca, &cs);
-	// TODO cs.error? refer TODO in cmd.c cs.error
-	if (cmd_error != CMD_ERROR_NONE || cs.error || cs.current_state != CARD_STATE_TRANFSFER) 
-		return SD_ERROR_ISSUE_CMD;
+	if (cmd_error != CMD_ERROR_NONE || cs.current_state != CARD_STATE_TRANFSFER) 
+		return SD_INIT_ERROR_ISSUE_CMD;
 
 	card_out->state = CARD_STATE_TRANFSFER;
 
-	sd_error = sd_set_4bit_data_bus_width(card_out->rca);
-	if (sd_error != SD_ERROR_NONE)
-		return sd_error;
-	
+	sd_init_error = sd_set_4bit_data_bus_width(card_out->rca);
+	if (sd_init_error != SD_INIT_ERROR_NONE)
+		return sd_init_error;
+
 	sd_enable_transfer_interrupts();
-	return SD_ERROR_NONE;
+	return SD_INIT_ERROR_NONE;
 }
 
 bool sd_read_block(byte_t *ram_dest_addr, byte_t *sd_src_addr, struct card *card)

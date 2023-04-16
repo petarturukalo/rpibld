@@ -27,9 +27,11 @@ enum cmd_index {
  * @CMD_ERROR_COMMAND_INHIBIT_DAT_BIT_SET: command which uses DAt line found DAT line
  *	high (i.e. a data transfer command or a command which uses busy signal, since 
  *	the busy signal is transmitted on the data line)
- * @CMD_ERROR_ERROR_INTERRUPT: one of the error interrupts was flagged
- * @CMD_ERROR_NOT_EXPECTED_INTERRUPT: an expected interrupt wasn't triggered
+ * @CMD_ERROR_INTERRUPT_ERROR: one of the error interrupts was flagged
+ * @CMD_ERROR_CARD_STATUS_ERROR: a command with a card status response had an error bit
+ *	set in the card status 
  * @CMD_ERROR_RESPONSE_CONTENTS: contents of command response not as expected
+ * TODO rename/redocument CMD_ERROR_RESPONSE_CONTENTS
  */
 enum cmd_error {
 	CMD_ERROR_NONE,
@@ -37,8 +39,9 @@ enum cmd_error {
 	CMD_ERROR_COMMAND_INHIBIT_DAT_BIT_SET,
 	CMD_ERROR_COMMAND_UNIMPLEMENTED,
 	CMD_ERROR_WAIT_FOR_INTERRUPT_TIMEOUT,
-	CMD_ERROR_ERROR_INTERRUPT,
-	CMD_ERROR_NOT_EXPECTED_INTERRUPT,
+	CMD_ERROR_INTERRUPT_ERROR,
+	CMD_ERROR_EXPECTED_INTERRUPT_NOT_TRIGGERED,
+	CMD_ERROR_CARD_STATUS_ERROR,
  /* Above are returns from sd_issue_cmd(). Below are extra returns from sd_issue_cmd() wrappers. */
 	CMD_ERROR_RESPONSE_CONTENTS,
 	CMD_ERROR_GENERAL_TIMEOUT
@@ -48,7 +51,8 @@ enum cmd_error {
  * Issue a command to the SD card. If the return is successful (CMD_ERROR_NONE)
  * and the command expects a response, check the RESP* registers for the response.
  *
- * @idx: index of a standard (not application) command
+ * @idx: index of a standard (not application) command (unless this is being called 
+ *	from sd_issue_acmd()) 
  * @args: arguments optionally used by the command
  */
 enum cmd_error sd_issue_cmd(enum cmd_index idx, uint32_t args);
@@ -63,8 +67,6 @@ enum cmd_error sd_issue_acmd(enum cmd_index idx, uint32_t args, int rca);
 
 // TODO document?
 void sd_isr(void);
-
-/* TODO should wrappers of sd_issue_cmd() go here or in sd.c? */
 
 /*
  * Verify the card can operate on the 2.7-3.6V host supply voltage.
@@ -101,14 +103,12 @@ enum cmd_error sd_issue_cmd3(int *rca_out);
  * The command's card status response isn't returned or checked for its current state 
  * because it will be the state of the card from before the command caused a state change.
  * To get the state that was toggled to, issue CMD13 after this.
- * TODO if have more commands that need to check state then 
  */
 enum cmd_error sd_issue_cmd7(int rca);
 
 /* 
  * Card status response from RESPONSE_R1_NORMAL and RESPONSE_R1B_NORMAL_BUSY. 
- * @app_cmd: signals whether it expects the next issued command to
- *	be an application command
+ * @app_cmd: signals whether the next issued command is expected to be an application command
  * @card_state: stores an enum card_state except for CARD_STATE_INACTIVE. 
  * TODO keep this here? move it to reg.h?
  */
@@ -152,7 +152,7 @@ enum cmd_error sd_issue_cmd13(int rca, struct card_status *cs_out);
 enum cmd_error sd_issue_acmd6(int rca, bool four_bit);
 
 /* TODO don't put this here? */
-/* Read block size in bytes. TODO explain why it's the default */
+/* Read block size in bytes. */
 #define DEFAULT_READ_BLKSZ 512
 
 /*

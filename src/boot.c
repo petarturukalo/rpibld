@@ -14,7 +14,7 @@
  */
 void c_entry(void)
 {
-	enum sd_error error;
+	enum sd_init_error error;
 	struct card card;
 	byte_t *ram_addr;
 
@@ -23,7 +23,7 @@ void c_entry(void)
 	ic_enable_interrupts();
 
 	error = sd_init(&card);
-	if (error != SD_ERROR_NONE) {
+	if (error != SD_INIT_ERROR_NONE) {
 		signal_error(1);
 		/*signal_error(ERROR_SD_INIT);*/
 	}
@@ -34,6 +34,7 @@ void c_entry(void)
 		signal_error(3);
 	if (*(ram_addr+511) != 0xaa)
 		signal_error(4);
+	signal_error(5);
 	print_byte(*(ram_addr+511));
 	print_byte(*(ram_addr+510));
 	__asm("wfi");

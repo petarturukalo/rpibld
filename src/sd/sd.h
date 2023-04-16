@@ -1,7 +1,6 @@
 /*
- * Access to SD (Secure Digital) / (embedded) MMC (MultiMediaCard) 
+ * Read access to SD (Secure Digital) / (embedded) MMC (MultiMediaCard) 
  * secondary storage.
- * TODO fix up comment after implemented more
  */
 #ifndef SD_H
 #define SD_H
@@ -9,13 +8,12 @@
 #include "../type.h"
 
 /*
- * @SD_ERROR_CMD_ISSUE: error issuing a SD command
- * TODO rename to sd_init_error if only used by sd_init()?
+ * @SD_INIT_ERROR_CMD_ISSUE: error issuing a SD command
  */
-enum sd_error {
-	SD_ERROR_NONE,
-	SD_ERROR_ISSUE_CMD,
-	SD_ERROR_UNUSABLE_CARD
+enum sd_init_error {
+	SD_INIT_ERROR_NONE,
+	SD_INIT_ERROR_ISSUE_CMD,
+	SD_INIT_ERROR_UNUSABLE_CARD
 };
 
 // TODO mv this?
@@ -29,8 +27,7 @@ enum card_state {
 /* Data transfer operation mode. */
 	CARD_STATE_STANDBY,
 	CARD_STATE_TRANFSFER,
-// TODO if not going to use below states don't worry about setting states at all?
-// or just comment that below are unused
+/* Below aren't set explicitly. */
 	CARD_STATE_SENDING_DATA,
 	CARD_STATE_RECEIVE_DATA,
 	CARD_STATE_PROGRAMMING,
@@ -57,11 +54,11 @@ struct card {
 
 /*
  * Initialise the inserted SD card so that it is ready for data
- * transfer with TODO mention sd read/write fns. The card is 
- * initialised to 4-bit data bus width, 25 MHz clock, default speed 
- * bus mode.
+ * transfer with sd_read_block() TODO recomment if fn gets renamed. 
+ * The card is initialised to 4-bit data bus width, 25 MHz clock, 
+ * default speed bus mode.
  */
-enum sd_error sd_init(struct card *card_out);
+enum sd_init_error sd_init(struct card *card_out);
 
 /*
  * Read a single block of size DEFAULT_READ_BLKSZ from the SD card into RAM.
