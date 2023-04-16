@@ -21,11 +21,6 @@ void mcopy(void *src, void *dest, int n)
 		d[i] = s[i];
 }
 
-void copy_reg_to_bitfields(word_t reg, void *reg_struct)
-{
-	mcopy(&reg, reg_struct, sizeof(word_t));
-}
-
 bool mcmp(void *mem1, void *mem2, int n)
 {
 	byte_t *b1 = mem1;

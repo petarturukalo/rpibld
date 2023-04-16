@@ -13,7 +13,7 @@ void sleep_long(void)
 		;
 }
 
-void print_bit(word_t word, int bit)
+void print_bit(uint32_t word, int bit)
 {
 	/* 0 is 1 beep, 1 is 2 beeps */
 	if (word&(1<<bit)) {
@@ -31,7 +31,7 @@ void print_bit(word_t word, int bit)
 	}
 }
 
-void print_word(word_t word)
+void print_word(uint32_t word)
 {
 	for (int i = 0; i < 32; ++i) {
 		print_bit(word, i);
@@ -39,7 +39,15 @@ void print_word(word_t word)
 	}
 }
 
-void print_word_reverse(word_t word)
+void print_byte(char byte)
+{	
+	for (int i = 0; i < 8; ++i) {
+		print_bit(byte, i);
+		sleep_long();
+	}
+}
+
+void print_word_reverse(uint32_t word)
 {
 	for (int i = 31; i >= 0; --i) {
 		print_bit(word, i);

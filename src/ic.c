@@ -59,7 +59,7 @@ static enum irq get_irq_source(void)
 	 * interrupt controller' of the BCM2711 datasheet for the logic here.
 	 */
 	if (register_get(&arm_local_access, IRQ_SOURCE0)&1<<8) {
-		word_t pending2 = register_get(&armc_access, IRQ0_PENDING2);
+		uint32_t pending2 = register_get(&armc_access, IRQ0_PENDING2);
 
 		// TODO split this into handling ARMC interrupts in PENDING 2 and
 		// VC interrupts in PENDING0/1
@@ -67,7 +67,7 @@ static enum irq get_irq_source(void)
 			if (register_get(&armc_access, IRQ0_PENDING0)&1<<1) 
 				return IRQ_VC_TIMER1;
 		} else if (pending2&1<<25) {
-			word_t pending1 = register_get(&armc_access, IRQ0_PENDING1);
+			uint32_t pending1 = register_get(&armc_access, IRQ0_PENDING1);
 		
 			// TODO name these shifts duplicated here and in ic_enable_interrupts()
 			if (pending1&1<<3)

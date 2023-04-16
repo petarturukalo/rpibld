@@ -24,69 +24,6 @@
 /* 25 MHz. */
 #define DEFAULT_SPEED_CLOCK_RATE_HZ   25000000
 
-// TODO don't like this here, put it back in sd.c/h or a new card related file?
-enum card_state {
-/* Inactive operation mode. */
-	CARD_STATE_INACTIVE = -1,
-/* Card identification operation mode. */
-	CARD_STATE_IDLE,
-	CARD_STATE_READY,
-	CARD_STATE_IDENTIFICATION,
-/* Data transfer operation mode. */
-	CARD_STATE_STANDBY,
-	CARD_STATE_TRANFSFER,
-// TODO if not going to use below states don't worry about setting states at all?
-	CARD_STATE_SENDING_DATA,
-	CARD_STATE_RECEIVE_DATA,
-	CARD_STATE_PROGRAMMING,
-	CARD_STATE_DISCONNECT
-};
-
-enum operation_mode {
-	OPMODE_INACTIVE,
-	OPMODE_CARD_IDENTIFICATION,
-	OPMODE_DATA_TRANSFER
-};
-
-// TODO delete if unused (and other unused stuff)
-enum operation_mode card_state_opmode(enum card_state state)
-{
-	switch (state) {
-		case CARD_STATE_INACTIVE:
-			return OPMODE_INACTIVE;
-		case CARD_STATE_IDLE:
-		case CARD_STATE_READY:
-		case CARD_STATE_IDENTIFICATION:
-			return OPMODE_CARD_IDENTIFICATION;
-		case CARD_STATE_STANDBY:
-		case CARD_STATE_TRANFSFER:
-		case CARD_STATE_SENDING_DATA:
-		case CARD_STATE_RECEIVE_DATA:
-		case CARD_STATE_PROGRAMMING:
-		case CARD_STATE_DISCONNECT:
-			return OPMODE_DATA_TRANSFER;
-	}
-}
-
-/*
- * Card (SD card) metadata and bookkeeping data.
- *
- * @state: the card's current state
- * @version_2_or_later: whether the card supports the physical layer
- *	specification version 2.00 or later. For reference SDSC (or just
- *	SD) was defined in version 2, SDHC in version 2, and SDXC in version 3.
- * @sdhc_or_sdxc: whether the card is either of SDHC (high capacity) or SDXC
- *	(extended capacity). If false the card is SDSC (standard capacity).
- * @rca: card's relative card address
- */
-struct card {
-	enum card_state state;
-	bool version_2_or_later;
-	bool sdhc_or_sdxc;
-	int rca;
-};
-
-
 /*
  * Assert that the EMMC2 base clock has a clock rate of EMMC2_EXPECTED_BASE_CLOCK_HZ.
  */
@@ -218,22 +155,42 @@ static void sd_supply_clock(int clock_rate)
 	register_enable_bits(&sd_access, CONTROL1, CONTROL1_CLK_EN);
 }
 
-static void sd_enable_interrupts(void)
+static void sd_enable_interrupts(struct interrupt irpt)
+{
+	/* Enable triggered interrupts to be flagged in the INTERRUPT register. */
+	register_enable_bits(&sd_access, IRPT_MASK, cast_bitfields(irpt, uint32_t));
+	/* Enable interrupt generation. */
+	register_enable_bits(&sd_access, IRPT_EN, cast_bitfields(irpt, uint32_t));
+}
+
+static void sd_enable_cmd_interrupts(void)
 {
 	struct interrupt irpt;
 
 	mzero(&irpt, sizeof(irpt));
-	irpt.cmd_complete = 1;
-	irpt.cmd_timeout_error = 1;
+	irpt.cmd_complete = true;
+	irpt.cmd_timeout_error = true;
 	// TODO need CMD59 to even use CRC?
-	irpt.cmd_crc_error = 1;
-	irpt.cmd_end_bit_error = 1;
-	irpt.cmd_index_error = 1;
+	irpt.cmd_crc_error = true;
+	irpt.cmd_end_bit_error = true;
+	irpt.cmd_index_error = true;
 
-	/* Enable triggered interrupts to be flagged in the INTERRUPT register. */
-	register_set_ptr(&sd_access, IRPT_MASK, &irpt);
-	/* Enable interrupt generation. */
-	register_set_ptr(&sd_access, IRPT_EN, &irpt);
+	sd_enable_interrupts(irpt);
+}
+
+static void sd_enable_transfer_interrupts(void)
+{
+	struct interrupt irpt;
+
+	mzero(&irpt, sizeof(irpt));
+	irpt.read_ready = true;
+	irpt.transfer_complete = true;
+	irpt.data_timeout_error = true;
+	// TODO CMD59?
+	irpt.data_crc_error = true;
+	irpt.data_end_bit_error = true;
+
+	sd_enable_interrupts(irpt);
 }
 
 /*
@@ -250,7 +207,7 @@ static void sd_pre_cmd_init(void)
 	 * TODO test this with different cards?
 	 */
 	sd_supply_clock(IDENTIFICATION_CLOCK_RATE_HZ);
-	sd_enable_interrupts();
+	sd_enable_cmd_interrupts();
 }
 
 /*
@@ -329,18 +286,17 @@ static enum sd_error sd_set_4bit_data_bus_width(int rca)
 	return error == CMD_ERROR_NONE ? SD_ERROR_NONE : SD_ERROR_ISSUE_CMD;
 }
 
-enum sd_error sd_init(void)
+enum sd_error sd_init(struct card *card_out)
 {
 	enum sd_error sd_error;
-	struct card card;
 	enum cmd_error cmd_error;
 	struct card_status cs;
 
-	mzero(&card, sizeof(card));
+	mzero(card_out, sizeof(struct card));
 
 	sd_pre_cmd_init();
 	/* After sd_pre_cmd_init() have a 1-bit data bus width and <= 400 KHz clock. */
-	sd_error = sd_card_init_and_identify(&card);
+	sd_error = sd_card_init_and_identify(card_out);
 	if (sd_error != SD_ERROR_NONE)
 		return sd_error;
 
@@ -357,17 +313,43 @@ enum sd_error sd_init(void)
 	sd_supply_clock(DEFAULT_SPEED_CLOCK_RATE_HZ);
 
 	/* Put card in transfer state. */
-	cmd_error = sd_issue_cmd7(card.rca);
+	cmd_error = sd_issue_cmd7(card_out->rca);
 	if (cmd_error != CMD_ERROR_NONE) 
 		return SD_ERROR_ISSUE_CMD;
 	/* Verify card got put into transfer state. */
-	cmd_error = sd_issue_cmd13(card.rca, &cs);
+	cmd_error = sd_issue_cmd13(card_out->rca, &cs);
 	// TODO cs.error? refer TODO in cmd.c cs.error
 	if (cmd_error != CMD_ERROR_NONE || cs.error || cs.current_state != CARD_STATE_TRANFSFER) 
 		return SD_ERROR_ISSUE_CMD;
 
-	card.state = CARD_STATE_TRANFSFER;
+	card_out->state = CARD_STATE_TRANFSFER;
 
-	return sd_set_4bit_data_bus_width(card.rca);
+	sd_error = sd_set_4bit_data_bus_width(card_out->rca);
+	if (sd_error != SD_ERROR_NONE)
+		return sd_error;
+	
+	sd_enable_transfer_interrupts();
+	return SD_ERROR_NONE;
 }
 
+bool sd_read_block(byte_t *ram_dest_addr, byte_t *sd_src_addr, struct card *card)
+{
+	struct blksizecnt blkszcnt;
+	enum cmd_error error;
+
+	/* Convert SDHC or SDXC byte unit address to block unit address. */
+	// TODO do this check here or in cmd17?
+	if (card->sdhc_or_sdxc) {
+		if ((int)sd_src_addr%DEFAULT_READ_BLKSZ)
+			return false;
+		sd_src_addr = (byte_t *)((int)sd_src_addr/DEFAULT_READ_BLKSZ);
+	}
+	/* Set block size and count. */
+	mzero(&blkszcnt, sizeof(blkszcnt));
+	blkszcnt.blksize = DEFAULT_READ_BLKSZ;
+	blkszcnt.blkcnt = 1;
+	register_set(&sd_access, BLKSIZECNT, cast_bitfields(blkszcnt, uint32_t));
+
+	error = sd_issue_cmd17(ram_dest_addr, sd_src_addr);
+	return error == CMD_ERROR_NONE;
+}

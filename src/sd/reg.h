@@ -7,6 +7,7 @@
 #include "../mmio.h"
 
 enum sd_register {
+	BLKSIZECNT,
 	ARG1,
 	CMDTM,
 	RESP0,
@@ -27,6 +28,7 @@ static struct periph_access sd_access = {
 	 */
 	.periph_base_off = 0x2340000,
 	.register_offsets = {
+		[BLKSIZECNT] = 0x04,
 		[ARG1]       = 0x08,
 		[CMDTM]      = 0x0c,
 		[RESP0]      = 0x10,
@@ -41,11 +43,20 @@ static struct periph_access sd_access = {
 	}
 };
 
+struct blksizecnt {
+	bits_t blksize : 10;
+	bits_t reserved : 6;
+	bits_t blkcnt : 16;
+} __attribute__((packed));
+
 struct cmdtm {
 	bits_t reserved1 : 1;
 	bits_t block_cnt_en : 1;
 	bits_t auto_cmd_en : 2;
-	bits_t data_transfer_direction : 1;
+	enum {
+		CMDTM_TM_DAT_DIR_READ  = 1,
+		CMDTM_TM_DAT_DIR_WRITE = 0
+	} data_transfer_direction : 1;
 	bits_t multi_block : 1;
 	bits_t reserved2 : 10;
 	enum {
@@ -92,6 +103,11 @@ struct interrupt {
 	bits_t reserved5 : 7;
 } __attribute__((packed));
 
+/* Extra masks for the interrupt registers (INTERRUPT, etc.). */
+#define INTERRUPT_CMD_COMPLETE       0x01
+#define INTERRUPT_TRANSFER_COMPLETE  0x02
+#define INTERRUPT_READ_READY         0x20
+
 /* Status register fields. */
 #define STATUS_COMMAND_INHIBIT_CMD 0x1
 #define STATUS_COMMAND_INHIBIT_DAT 0x2
@@ -103,7 +119,7 @@ struct interrupt {
  * but from the SD Host Controller spec they make up the power control 
  * register.
  */
-#define CONTROL0_PWR_CTL_SHIFT 0x8
+#define CONTROL0_PWR_CTL_SHIFT 8
 /* Power control register fields. */
 /* Voltage select. */
 #define PWR_CTL_SD_BUS_VOLT_SEL_3V3 0b1110
@@ -116,7 +132,7 @@ struct interrupt {
 #define CONTROL1_INT_CLK_STABLE 0x2
 #define CONTROL1_CLK_EN         0x4
 /* SD clock frequency select shift. */
-#define CONTROL1_CLK_FREQ_SEL_SHIFT 0x8
+#define CONTROL1_CLK_FREQ_SEL_SHIFT 8
 /* Software reset host controller. */
 #define CONTROL1_SW_RESET_HC 0x1000000
 

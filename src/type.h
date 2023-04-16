@@ -3,10 +3,9 @@
 
 typedef unsigned int bits_t;
 typedef char byte_t;
-// TODO rm word_t and use uint32_t instead? maybe not
-typedef int word_t;
 
 typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
 typedef unsigned int uint32_t;
 
 typedef int bool;

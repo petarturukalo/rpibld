@@ -60,15 +60,16 @@ struct command {
 };
 
 struct command commands[] = {
-	{ CMD_IDX_GO_IDLE_STATE,      CMD_TYPE_BC,  RESPONSE_NONE },
-	{ CMD_IDX_ALL_SEND_CID,       CMD_TYPE_BCR, RESPONSE_R2_CID_OR_CSD_REG },
-	{ CMD_IDX_SEND_RELATIVE_ADDR, CMD_TYPE_BCR, RESPONSE_R6_PUBLISHED_RCA },
-	{ CMD_IDX_SELECT_CARD,	      CMD_TYPE_AC,  RESPONSE_R1B_NORMAL_BUSY },
-	{ CMD_IDX_SEND_IF_COND,       CMD_TYPE_BCR, RESPONSE_R7_CARD_INTERFACE_CONDITION },
-	{ CMD_IDX_SEND_STATUS,	      CMD_TYPE_AC,  RESPONSE_R1_NORMAL },
-	{ CMD_IDX_APP_CMD,            CMD_TYPE_AC,  RESPONSE_R1_NORMAL },
-	{ ACMD_IDX_SET_BUS_WIDTH,     CMD_TYPE_AC,  RESPONSE_R1_NORMAL },
-	{ ACMD_IDX_SD_SEND_OP_COND,   CMD_TYPE_BCR, RESPONSE_R3_OCR_REG }
+	{ CMD_IDX_GO_IDLE_STATE,      CMD_TYPE_BC,   RESPONSE_NONE },
+	{ CMD_IDX_ALL_SEND_CID,       CMD_TYPE_BCR,  RESPONSE_R2_CID_OR_CSD_REG },
+	{ CMD_IDX_SEND_RELATIVE_ADDR, CMD_TYPE_BCR,  RESPONSE_R6_PUBLISHED_RCA },
+	{ CMD_IDX_SELECT_CARD,        CMD_TYPE_AC,   RESPONSE_R1B_NORMAL_BUSY },
+	{ CMD_IDX_SEND_IF_COND,       CMD_TYPE_BCR,  RESPONSE_R7_CARD_INTERFACE_CONDITION },
+	{ CMD_IDX_SEND_STATUS,        CMD_TYPE_AC,   RESPONSE_R1_NORMAL },
+	{ CMD_IDX_READ_SINGLE_BLOCK,  CMD_TYPE_ADTC, RESPONSE_R1_NORMAL },
+	{ CMD_IDX_APP_CMD,            CMD_TYPE_AC,   RESPONSE_R1_NORMAL },
+	{ ACMD_IDX_SET_BUS_WIDTH,     CMD_TYPE_AC,   RESPONSE_R1_NORMAL },
+	{ ACMD_IDX_SD_SEND_OP_COND,   CMD_TYPE_BCR,  RESPONSE_R3_OCR_REG }
 };
 
 static struct command *get_command(enum cmd_index idx)
@@ -83,18 +84,11 @@ static struct command *get_command(enum cmd_index idx)
 	return NULL;
 }
 
-/*
- * Set the fields of the cmdtm register required to issue the
- * given command.
+/* 
+ * Set size of response from response type. 
  */
-static void sd_set_cmdtm(struct command *cmd, struct cmdtm *cmdtm)
+static void sd_set_cmdtm_response(struct command *cmd, struct cmdtm *cmdtm)
 {
-	mzero(cmdtm, sizeof(struct cmdtm));
-
-	cmdtm->cmd_index = cmd->index & ~IS_APP_CMD;
-
-	// TODO put in funcs?
-	/* Set size of response from response type. */
 	switch (cmd->response) {
 		case RESPONSE_NONE:
 			cmdtm->response_type = CMDTM_RESPONSE_TYPE_NONE;
@@ -112,12 +106,15 @@ static void sd_set_cmdtm(struct command *cmd, struct cmdtm *cmdtm)
 			cmdtm->response_type = CMDTM_RESPONSE_TYPE_136_BITS;
 			break;
 	}
+}
 
-	/* 
-	 * Set index check enable and CRC check enable from response.
-	 * If a case doesn't set one of these it means it's supposed to be disabled
-	 * (and it's already been disabled from zeroing).
-	 */
+/* 
+ * Set index check enable and CRC check enable from response.
+ * If a case doesn't set one of these it means it's supposed to be disabled
+ * (and it's already been disabled from zeroing).
+ */
+static void sd_set_cmdtm_idx_and_crc_chk(struct command *cmd, struct cmdtm *cmdtm)
+{
 	switch (cmd->response) {
 		case RESPONSE_NONE:
 		case RESPONSE_R3_OCR_REG:
@@ -136,17 +133,54 @@ static void sd_set_cmdtm(struct command *cmd, struct cmdtm *cmdtm)
 }
 
 /* 
+ * Set the fields of the transfer mode register relevant to the command.
+ * The transfer mode register is the lower 16 bits of cmdtm.
+ */
+static void sd_set_cmdtm_transfer_mode(struct command *cmd, struct cmdtm *cmdtm)
+{
+	/* As more commands are implemented they will need to be added here. */
+	if (cmd->index == CMD_IDX_READ_SINGLE_BLOCK)
+		cmdtm->data_transfer_direction = CMDTM_TM_DAT_DIR_READ;
+}
+
+/*
+ * Set the fields of the cmdtm register required to issue the
+ * given command.
+ */
+static void sd_set_cmdtm(struct command *cmd, struct cmdtm *cmdtm)
+{
+	mzero(cmdtm, sizeof(struct cmdtm));
+
+	cmdtm->cmd_index = cmd->index & ~IS_APP_CMD;
+	sd_set_cmdtm_response(cmd, cmdtm);
+	sd_set_cmdtm_idx_and_crc_chk(cmd, cmdtm);
+	/* 
+	 * Addressed data transfer commands which transfer data on DAT will 
+	 * (of course) have data present on the DAT line.
+	 */
+	if (cmd->type == CMD_TYPE_ADTC)
+		cmdtm->data_present = true;
+	sd_set_cmdtm_transfer_mode(cmd, cmdtm);
+}
+
+/* 
  * The interrupt flags set from the most recently generated interrupt.
  */
 static struct interrupt interrupt;
 
 /* 
- * Return false if timed out waiting for an interrupt. 
- * If successful (returned true) check the 'interrupt' global variable.
+ * If the return is zero then timed out waiting for any interrupt.
+ *
+ * Ensure the 'interrupt' global variable is zeroed before the interrupt
+ * has a chance to be triggered (and before calling this) to avoid returning 
+ * a false positive.
  */
-static bool sd_wait_for_interrupt(void)
+static struct interrupt sd_wait_for_any_interrupt(void)
 {
 	struct timestamp ts;
+	struct interrupt irpt;
+
+	mzero(&irpt, sizeof(irpt));
 
 	/*
 	 * The sleep is done instead of a wfi to avoid a race condition: if the interrupt 
@@ -154,14 +188,41 @@ static bool sd_wait_for_interrupt(void)
 	 * the wfi instruction, this would get stuck waiting for an interrupt that will 
 	 * never trigger. 
 	 */
-	timer_poll_start(600, &ts);
+	timer_poll_start(500, &ts);
 	do {
-		if (cast_bitfields(interrupt, uint32_t))  
-			return true;
+		if (cast_bitfields(interrupt, uint32_t))   {
+			mcopy(&interrupt, &irpt, sizeof(irpt));
+			break;
+		}
 		usleep(50);
 	} while (!timer_poll_done(&ts));
 
-	return false;
+	/* 
+	 * Zero global in case subsequent calls to this are chained together. 
+	 * TODO note the race condition here
+	 */
+	mzero(&interrupt, sizeof(interrupt));
+
+	return irpt;
+}
+
+/*
+ * Wait for a particular interrupt. 
+ * @interrupt: bit mask for the interrupt's field in the INTERRUPT register
+ */
+enum cmd_error sd_wait_for_interrupt(int interrupt_mask)
+{
+	struct interrupt irpt = sd_wait_for_any_interrupt();
+
+	if (!cast_bitfields(irpt, uint32_t))
+		return CMD_ERROR_WAIT_FOR_INTERRUPT_TIMEOUT;
+	if (interrupt.error) 
+		/* TODO check which error it was instead and retry instead of failing? */
+		return CMD_ERROR_ERROR_INTERRUPT;
+	/* TODO need to cast to uint32_t? */
+	if (!(cast_bitfields(irpt, uint32_t)&interrupt_mask)) 
+		return CMD_ERROR_NOT_EXPECTED_INTERRUPT;
+	return CMD_ERROR_NONE;
 }
 
 enum cmd_error sd_issue_cmd(enum cmd_index idx, uint32_t args)
@@ -181,7 +242,8 @@ enum cmd_error sd_issue_cmd(enum cmd_index idx, uint32_t args)
 	 * Note if implement an abort command such as CMD12 then need to let it skip this step
 	 * (and then delete this comment).
 	 */
-	if (cmd->response == RESPONSE_R1B_NORMAL_BUSY && status&STATUS_COMMAND_INHIBIT_DAT) 
+	if ((cmd->type == CMD_TYPE_ADTC || cmd->response == RESPONSE_R1B_NORMAL_BUSY) && 
+	    status&STATUS_COMMAND_INHIBIT_DAT) 
 		return CMD_ERROR_COMMAND_INHIBIT_CMD_BIT_SET;
 
 	/* Set the command's arguments. Note if implement ACMD23 it needs to use ARG2 instead. */
@@ -192,16 +254,7 @@ enum cmd_error sd_issue_cmd(enum cmd_index idx, uint32_t args)
 
 	/* Issue the command, which should trigger an interrupt. */
 	register_set_ptr(&sd_access, CMDTM, &cmdtm);
-	timeout = !sd_wait_for_interrupt();
-	if (timeout)
-		return CMD_ERROR_WAIT_FOR_INTERRUPT_TIMEOUT;
-	if (interrupt.error) 
-		/* TODO check which error it was instead and retry instead of failing? */
-		return CMD_ERROR_ERROR_INTERRUPT;
-	if (!interrupt.cmd_complete) 
-		return CMD_ERROR_NO_COMMAND_COMPLETE_INTERRUPT;
-	/* TODO if cmd uses transfer complete interrupt then need to wait for that (or can be done in wrapper) */
-	return CMD_ERROR_NONE;
+	return sd_wait_for_interrupt(INTERRUPT_CMD_COMPLETE);
 }
 
 void sd_isr(void)
@@ -379,4 +432,39 @@ enum cmd_error sd_issue_acmd6(int rca, bool four_bit)
 
 	return sd_issue_acmd(ACMD_IDX_SET_BUS_WIDTH, cast_bitfields(args, uint32_t), rca);
 	// TODO need to check error in R1 response?
+}
+
+enum cmd_error sd_issue_cmd17(byte_t *ram_dest_addr, byte_t *sd_src_addr)
+{
+	enum cmd_error error;
+	bool timeout;
+	uint32_t data;
+	int bytes_remaining = DEFAULT_READ_BLKSZ;
+	int bytes_read = sizeof(data);
+
+	error = sd_issue_cmd(CMD_IDX_READ_SINGLE_BLOCK, (uint32_t)sd_src_addr);
+	/* TODO check response?*/
+	if (error != CMD_ERROR_NONE)
+		return error;
+	/* TODO race condition here? */
+	error = sd_wait_for_interrupt(INTERRUPT_READ_READY);
+	if (error != CMD_ERROR_NONE)
+		return error;
+	// TODO do transfer here or in wrapper?
+	/* Copy read block from host buffer to RAM. */
+	while (bytes_remaining > 0) {
+		data = register_get(&sd_access, DATA);
+
+		/* 
+		 * The default read block size is a multiple of the size of the DATA 
+		 * register in bytes, so it's always safe to copy all of what was read.
+		 * TODO need to worry about endianness here? (refer sdhost spec pg ~17)
+		 */
+		mcopy(&data, ram_dest_addr, bytes_read);
+
+		ram_dest_addr += bytes_read;
+		bytes_remaining -= bytes_read;
+	}
+	/* TODO race condition here? */
+	return sd_wait_for_interrupt(INTERRUPT_TRANSFER_COMPLETE);
 }

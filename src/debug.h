@@ -9,9 +9,10 @@
 
 void sleep_short(void);
 void sleep_long(void);
-void print_word(word_t word);
-void print_word_reverse(word_t word);
-void print_bit(word_t word, int bit);
+void print_word(uint32_t word);
+void print_word_reverse(uint32_t word);
+void print_bit(uint32_t word, int bit);
 void print_cpsr(void);
+void print_byte(char byte);
 
 #endif

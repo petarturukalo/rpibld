@@ -6,6 +6,7 @@
 #include "led.h" // TODO rm
 #include "debug.h" // TODO rm
 #include "timer.h" // TODO rm
+#include "heap.h" // TODO rm
 
 /*
  * Entry point to the C code, the function branched to when switching from 
@@ -14,20 +15,26 @@
 void c_entry(void)
 {
 	enum sd_error error;
+	struct card card;
+	byte_t *ram_addr;
 
 	enable_interrupts();
 	/*gic_init();*/
 	ic_enable_interrupts();
 
-	error = sd_init();
+	error = sd_init(&card);
 	if (error != SD_ERROR_NONE) {
 		signal_error(1);
 		/*signal_error(ERROR_SD_INIT);*/
 	}
-	signal_error(2);
-
-	/*sleep(1000);*/
-	/*sd_trigger_dummy_interrupt();*/
-
-	__asm__("wfi");
+	ram_addr = heap_get_base_address();
+	if (!sd_read_block(ram_addr, (byte_t *)0, &card))
+		signal_error(2);
+	if (*(ram_addr+510) != 0x55)
+		signal_error(3);
+	if (*(ram_addr+511) != 0xaa)
+		signal_error(4);
+	print_byte(*(ram_addr+511));
+	print_byte(*(ram_addr+510));
+	__asm("wfi");
 }

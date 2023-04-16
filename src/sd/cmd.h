@@ -16,6 +16,7 @@ enum cmd_index {
 	CMD_IDX_SELECT_CARD        = 7,
 	CMD_IDX_SEND_IF_COND       = 8,  /* Send interface condition. */
 	CMD_IDX_SEND_STATUS	   = 13,
+	CMD_IDX_READ_SINGLE_BLOCK  = 17,
 	CMD_IDX_APP_CMD            = 55,
 /* Application commands. */
 	ACMD_IDX_SET_BUS_WIDTH     =  6|IS_APP_CMD,
@@ -23,11 +24,11 @@ enum cmd_index {
 };
 
 /*
- * @CMD_ERROR_COMMAND_INHIBIT_DAT_BIT_SET: command which uses busy signal was issued
- *	but the busy signal transmitted on the data line was high
+ * @CMD_ERROR_COMMAND_INHIBIT_DAT_BIT_SET: command which uses DAt line found DAT line
+ *	high (i.e. a data transfer command or a command which uses busy signal, since 
+ *	the busy signal is transmitted on the data line)
  * @CMD_ERROR_ERROR_INTERRUPT: one of the error interrupts was flagged
- * @CMD_ERROR_NO_COMMAND_COMPLETE_INTERRUPT: did not receive a command
- *	complete interrupt
+ * @CMD_ERROR_NOT_EXPECTED_INTERRUPT: an expected interrupt wasn't triggered
  * @CMD_ERROR_RESPONSE_CONTENTS: contents of command response not as expected
  */
 enum cmd_error {
@@ -37,7 +38,7 @@ enum cmd_error {
 	CMD_ERROR_COMMAND_UNIMPLEMENTED,
 	CMD_ERROR_WAIT_FOR_INTERRUPT_TIMEOUT,
 	CMD_ERROR_ERROR_INTERRUPT,
-	CMD_ERROR_NO_COMMAND_COMPLETE_INTERRUPT,
+	CMD_ERROR_NOT_EXPECTED_INTERRUPT,
  /* Above are returns from sd_issue_cmd(). Below are extra returns from sd_issue_cmd() wrappers. */
 	CMD_ERROR_RESPONSE_CONTENTS,
 	CMD_ERROR_GENERAL_TIMEOUT
@@ -149,5 +150,19 @@ enum cmd_error sd_issue_cmd13(int rca, struct card_status *cs_out);
  * @4bit: true for 4-bit data bus width, false for 1-bit.
  */
 enum cmd_error sd_issue_acmd6(int rca, bool four_bit);
+
+/* TODO don't put this here? */
+/* Read block size in bytes. TODO explain why it's the default */
+#define DEFAULT_READ_BLKSZ 512
+
+/*
+ * Read a single block of size DEFAULT_READ_BLKSZ from the SD card into RAM.
+ *
+ * @ram_dest_addr: destination address in RAM to copy read data to
+ * @sd_src_addr: source SD card address to read data from. If the card
+ *	is SDSC this should be a byte unit address. If the card is SDHC 
+ *	or SDXC	this should be a block unit address.
+ */
+enum cmd_error sd_issue_cmd17(byte_t *ram_dest_addr, byte_t *sd_src_addr);
 
 #endif
