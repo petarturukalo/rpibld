@@ -81,7 +81,7 @@ static struct command *get_command(enum cmd_index idx)
  * Set cmdtm response type from the command's response. The term "response type" is used
  * in the spec but the differentiating factor here is really response size (in bits).
  */
-static void sd_set_cmdtm_response_type(struct command *cmd, struct cmdtm *cmdtm)
+static void set_cmdtm_response_type(struct command *cmd, struct cmdtm *cmdtm)
 {
 	switch (cmd->response) {
 		case CMD_RESPONSE_NONE:
@@ -107,7 +107,7 @@ static void sd_set_cmdtm_response_type(struct command *cmd, struct cmdtm *cmdtm)
  * If a case doesn't set one of these it means it's supposed to be disabled
  * (and it's already been disabled from zeroing).
  */
-static void sd_set_cmdtm_idx_and_crc_chk(struct command *cmd, struct cmdtm *cmdtm)
+static void set_cmdtm_idx_and_crc_chk(struct command *cmd, struct cmdtm *cmdtm)
 {
 	switch (cmd->response) {
 		case CMD_RESPONSE_NONE:
@@ -130,7 +130,7 @@ static void sd_set_cmdtm_idx_and_crc_chk(struct command *cmd, struct cmdtm *cmdt
  * Set the fields of the transfer mode register relevant to the command.
  * The transfer mode register is the lower 16 bits of cmdtm.
  */
-static void sd_set_cmdtm_transfer_mode(struct command *cmd, struct cmdtm *cmdtm)
+static void set_cmdtm_transfer_mode(struct command *cmd, struct cmdtm *cmdtm)
 {
 	/* 
 	 * As more commands are implemented they will need to be added in conditions
@@ -144,20 +144,20 @@ static void sd_set_cmdtm_transfer_mode(struct command *cmd, struct cmdtm *cmdtm)
  * Set the fields of the cmdtm register required to issue the
  * given command.
  */
-static void sd_set_cmdtm(struct command *cmd, struct cmdtm *cmdtm)
+static void set_cmdtm(struct command *cmd, struct cmdtm *cmdtm)
 {
 	mzero(cmdtm, sizeof(struct cmdtm));
 
 	cmdtm->cmd_index = cmd->index & ~IS_APP_CMD;
-	sd_set_cmdtm_response_type(cmd, cmdtm);
-	sd_set_cmdtm_idx_and_crc_chk(cmd, cmdtm);
+	set_cmdtm_response_type(cmd, cmdtm);
+	set_cmdtm_idx_and_crc_chk(cmd, cmdtm);
 	/* 
 	 * Addressed data transfer commands which transfer data on DAT will 
 	 * (of course) have data present on the DAT line.
 	 */
 	if (cmd->type == CMD_TYPE_ADTC)
 		cmdtm->data_present = true;
-	sd_set_cmdtm_transfer_mode(cmd, cmdtm);
+	set_cmdtm_transfer_mode(cmd, cmdtm);
 }
 
 /* 
@@ -227,7 +227,7 @@ enum cmd_error sd_wait_for_interrupt(int interrupt_mask)
 	return CMD_ERROR_NONE;
 }
 
-bool sd_cmd_has_card_status_response(struct command *cmd)
+static bool sd_cmd_has_card_status_response(struct command *cmd)
 {
 	return cmd->response == CMD_RESPONSE_R1_NORMAL ||
 	       cmd->response == CMD_RESPONSE_R1B_NORMAL_BUSY;
@@ -236,7 +236,7 @@ bool sd_cmd_has_card_status_response(struct command *cmd)
 /*
  * Get whether at least one error bit in the card status is set high.
  */
-bool sd_card_status_error_bit_set(struct card_status *cs)
+static bool sd_card_status_error_bit_set(struct card_status *cs)
 {
 	return  cs->ake_seq_error || cs->wp_erase_skip || cs->csd_overwrite ||
 		cs->error || cs->cc_error || cs->card_ecc_failed || cs->illegal_command ||
@@ -266,7 +266,7 @@ enum cmd_error sd_issue_cmd(enum cmd_index idx, uint32_t args)
 	/* Set the command's arguments. Note if implement ACMD23 it needs to use ARG2 instead. */
 	register_set(&sd_access, ARG1, args);
 
-	sd_set_cmdtm(cmd, &cmdtm);
+	set_cmdtm(cmd, &cmdtm);
 	mzero(&interrupt, sizeof(interrupt));
 
 	/* Issue the command, which should trigger an interrupt. */
@@ -315,12 +315,7 @@ enum cmd_error sd_issue_cmd8(void)
 	struct {
 		bits_t check_pattern : 8;
 		enum {
-			/* TODO rm unused? */
-			CMD8_VHS_UNDEFINED  = 0x0,
 			CMD8_VHS_2V7_TO_3V6 = 0x1,  /* 2.7 to 3.6V */
-			CMD8_VHS_RESERVED_FOR_LOW_VOLTAGE_RANGE = 0x2,
-			CMD8_VHS_RESERVED1  = 0x4,
-			CMD8_VHS_RESERVED2  = 0x8
 		} supply_voltage : 4;
 		bits_t reserved : 20;
 	} __attribute__((packed)) args, resp;
@@ -328,7 +323,7 @@ enum cmd_error sd_issue_cmd8(void)
 
 	mzero(&args, sizeof(args));
 	args.check_pattern = 0b10101010;
-	args.supply_voltage = CMD8_VHS_2V7_TO_3V6;  /* 3.3V */
+	args.supply_voltage = CMD8_VHS_2V7_TO_3V6;
 
 	error = sd_issue_cmd(CMD_IDX_SEND_IF_COND, cast_bitfields(args, uint32_t));
 	if (error == CMD_ERROR_NONE) {
@@ -428,7 +423,6 @@ enum cmd_error sd_issue_cmd3(int *rca_out)
 enum cmd_error sd_issue_cmd7(int rca)
 {
 	struct ac_rca_args args;
-	enum cmd_error error;
 
 	mzero(&args, sizeof(args));
 	args.rca = rca;
@@ -459,7 +453,6 @@ enum cmd_error sd_issue_acmd6(int rca, bool four_bit)
 		} bus_width : 2;
 		bits_t unused : 30;
 	} __attribute__((packed)) args;
-	enum cmd_error error;
 
 	mzero(&args, sizeof(args));
 	args.bus_width = four_bit ? ACMD6_BUS_WIDTH_4BIT : ACMD6_BUS_WIDTH_1BIT;
@@ -471,17 +464,20 @@ enum cmd_error sd_issue_cmd17(byte_t *ram_dest_addr, byte_t *sd_src_addr)
 {
 	enum cmd_error error;
 	uint32_t data;
-	int bytes_remaining = DEFAULT_READ_BLKSZ;
+	int bytes_remaining = READ_BLKSZ;
 	int bytes_read = sizeof(data);
 
 	error = sd_issue_cmd(CMD_IDX_READ_SINGLE_BLOCK, (uint32_t)sd_src_addr);
 	if (error != CMD_ERROR_NONE)
 		return error;
-	/* TODO race condition here? */
+	/*
+	 * WARNING the wait for interrupts done here after sd_issue_cmd() are subject 
+	 * to race conditions. Although unlikely to happen, the race conditions can
+	 * be prevented by polling for triggered interrupts instead of servicing them.
+	 */
 	error = sd_wait_for_interrupt(INTERRUPT_READ_READY);
 	if (error != CMD_ERROR_NONE)
 		return error;
-	// TODO do transfer here or in wrapper?
 	/* Copy read block from host buffer to RAM. */
 	while (bytes_remaining > 0) {
 		data = register_get(&sd_access, DATA);
@@ -489,13 +485,11 @@ enum cmd_error sd_issue_cmd17(byte_t *ram_dest_addr, byte_t *sd_src_addr)
 		/* 
 		 * The default read block size is a multiple of the size of the DATA 
 		 * register in bytes, so it's always safe to copy all of what was read.
-		 * TODO need to worry about endianness here? (refer sdhost spec pg ~17)
 		 */
 		mcopy(&data, ram_dest_addr, bytes_read);
 
 		ram_dest_addr += bytes_read;
 		bytes_remaining -= bytes_read;
 	}
-	/* TODO race condition here? */
 	return sd_wait_for_interrupt(INTERRUPT_TRANSFER_COMPLETE);
 }

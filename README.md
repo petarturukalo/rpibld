@@ -44,3 +44,4 @@ TODO
 
 TODO
 - put in links/references for Bootloader Stages section?
+- add resources section for technical documentation

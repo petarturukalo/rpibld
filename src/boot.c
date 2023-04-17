@@ -7,6 +7,7 @@
 #include "debug.h" // TODO rm
 #include "timer.h" // TODO rm
 #include "heap.h" // TODO rm
+#include "help.h" // TODO rm
 
 /*
  * Entry point to the C code, the function branched to when switching from 
@@ -35,7 +36,5 @@ void c_entry(void)
 	if (*(ram_addr+511) != 0xaa)
 		signal_error(4);
 	signal_error(5);
-	print_byte(*(ram_addr+511));
-	print_byte(*(ram_addr+510));
 	__asm("wfi");
 }

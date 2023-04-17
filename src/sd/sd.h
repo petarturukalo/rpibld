@@ -16,7 +16,6 @@ enum sd_init_error {
 	SD_INIT_ERROR_UNUSABLE_CARD
 };
 
-// TODO mv this?
 enum card_state {
 /* Inactive operation mode. */
 	CARD_STATE_INACTIVE = -1,
@@ -27,7 +26,7 @@ enum card_state {
 /* Data transfer operation mode. */
 	CARD_STATE_STANDBY,
 	CARD_STATE_TRANFSFER,
-/* Below aren't set explicitly. */
+/* Below aren't set explicitly (but are still data transfer). */
 	CARD_STATE_SENDING_DATA,
 	CARD_STATE_RECEIVE_DATA,
 	CARD_STATE_PROGRAMMING,
@@ -61,18 +60,14 @@ struct card {
 enum sd_init_error sd_init(struct card *card_out);
 
 /*
- * Read a single block of size DEFAULT_READ_BLKSZ from the SD card into RAM.
+ * Read a single block of size READ_BLKSZ from the SD card into RAM.
  *
  * @ram_dest_addr: destination address in RAM to copy read data to
- * @sd_src_addr: source SD card address to read data from. If the card is
- *	SDHC or SDXC this must be DEFAULT_READ_BLKSZ-byte aligned so it
- *	can be converted into a block unit address. To be safe use a 
- *	DEFAULT_READ_BLKSZ address regardless of card capacity.
- * TODO flip this the other way around if find it simpler? i.e. pass a block address
+ * @sd_src_lba: source SD card logical block address to read data from (blocks
+ *	are of size READ_BLKSZ)
  *
- * Return false if sd_src_addr isn't DEFAULT_READ_BLKSZ-byte aligned or there
- * was an error issuing the read command.
+ * Return whether the read was successful.
  */
-bool sd_read_block(byte_t *ram_dest_addr, byte_t *sd_src_addr, struct card *card);
+bool sd_read_block(byte_t *ram_dest_addr, byte_t *sd_src_lba, struct card *card);
 
 #endif 

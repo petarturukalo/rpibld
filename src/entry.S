@@ -17,6 +17,7 @@
  * avoid running into this program (this program is loaded to address 0x8000), and 
  * to separate addresses to avoid running into each other. They are also 4-byte
  * aligned as they won't work if not 4-byte aligned.
+ * TODO set stacks lower; give the amount of stack space a typical program has?
  */
 .equ IRQ_STACK_START_ADDR, 0x07000000  /* ~117 MB. */
 .equ SVC_STACK_START_ADDR, 0x10000000  /* ~268 MB. */

@@ -90,7 +90,8 @@ static void sd_assert_vc_init(void)
 /*
  * Reset the entire host controller. Clears register bits, so needs to be
  * called before any other initialisation. 
- * TODO don't need this?
+ * TODO delete this if not needed after finish bootloader (might need it to
+ * reset sd before jumping to OS)
  */
 static void sd_reset_host(void)
 {
@@ -137,7 +138,10 @@ static int sd_8bit_clock_divider(int base_rate, int target_rate)
  */
 static void sd_supply_clock(int clock_rate)
 {
-	// TODO explain why using 8-bit clock divider (if even needed)
+	/* 
+	 * Using 8-bit clock divider under the assumption that earlier cards won't support
+	 * the version 3 10-bit divider. 
+	 */
 	int clock_divider = sd_8bit_clock_divider(EMMC2_EXPECTED_BASE_CLOCK_HZ, clock_rate);
 
 	/* Turn off clock in case it was already on (required to change frequency). */
@@ -170,7 +174,6 @@ static void sd_enable_cmd_interrupts(void)
 	mzero(&irpt, sizeof(irpt));
 	irpt.cmd_complete = true;
 	irpt.cmd_timeout_error = true;
-	// TODO need CMD59 to even use CRC?
 	irpt.cmd_crc_error = true;
 	irpt.cmd_end_bit_error = true;
 	irpt.cmd_index_error = true;
@@ -186,7 +189,6 @@ static void sd_enable_transfer_interrupts(void)
 	irpt.read_ready = true;
 	irpt.transfer_complete = true;
 	irpt.data_timeout_error = true;
-	// TODO CMD59?
 	irpt.data_crc_error = true;
 	irpt.data_end_bit_error = true;
 
@@ -309,7 +311,7 @@ enum sd_init_error sd_init(struct card *card_out)
 	 * to 0x0 on boot, default speed can be assumed - change the clock to 25 MHz for 
 	 * default speed.
 	 */
-	// TODO confirm new clock gets set up correctly
+	// TODO confirm new clock gets set up correctly by comparing 1-bit vs 4-bit read speeds
 	sd_supply_clock(DEFAULT_SPEED_CLOCK_RATE_HZ);
 
 	/* Put card in transfer state. */
@@ -331,24 +333,21 @@ enum sd_init_error sd_init(struct card *card_out)
 	return SD_INIT_ERROR_NONE;
 }
 
-bool sd_read_block(byte_t *ram_dest_addr, byte_t *sd_src_addr, struct card *card)
+bool sd_read_block(byte_t *ram_dest_addr, byte_t *sd_src_lba, struct card *card)
 {
 	struct blksizecnt blkszcnt;
 	enum cmd_error error;
 
-	/* Convert SDHC or SDXC byte unit address to block unit address. */
-	// TODO do this check here or in cmd17?
-	if (card->sdhc_or_sdxc) {
-		if ((int)sd_src_addr%DEFAULT_READ_BLKSZ)
-			return false;
-		sd_src_addr = (byte_t *)((int)sd_src_addr/DEFAULT_READ_BLKSZ);
+	/* Convert LBA / block unit address to byte unit address for SDSC. */
+	if (!card->sdhc_or_sdxc) {
+		sd_src_lba = (byte_t *)((int)sd_src_lba*READ_BLKSZ);
 	}
 	/* Set block size and count. */
 	mzero(&blkszcnt, sizeof(blkszcnt));
-	blkszcnt.blksize = DEFAULT_READ_BLKSZ;
+	blkszcnt.blksize = READ_BLKSZ;
 	blkszcnt.blkcnt = 1;
 	register_set(&sd_access, BLKSIZECNT, cast_bitfields(blkszcnt, uint32_t));
 
-	error = sd_issue_cmd17(ram_dest_addr, sd_src_addr);
+	error = sd_issue_cmd17(ram_dest_addr, sd_src_lba);
 	return error == CMD_ERROR_NONE;
 }

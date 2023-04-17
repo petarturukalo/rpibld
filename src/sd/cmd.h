@@ -24,14 +24,13 @@ enum cmd_index {
 };
 
 /*
- * @CMD_ERROR_COMMAND_INHIBIT_DAT_BIT_SET: command which uses DAt line found DAT line
+ * @CMD_ERROR_COMMAND_INHIBIT_DAT_BIT_SET: command which uses DAT line found DAT line
  *	high (i.e. a data transfer command or a command which uses busy signal, since 
  *	the busy signal is transmitted on the data line)
  * @CMD_ERROR_INTERRUPT_ERROR: one of the error interrupts was flagged
  * @CMD_ERROR_CARD_STATUS_ERROR: a command with a card status response had an error bit
  *	set in the card status 
  * @CMD_ERROR_RESPONSE_CONTENTS: contents of command response not as expected
- * TODO rename/redocument CMD_ERROR_RESPONSE_CONTENTS
  */
 enum cmd_error {
 	CMD_ERROR_NONE,
@@ -56,17 +55,15 @@ enum cmd_error {
  * @args: arguments optionally used by the command
  */
 enum cmd_error sd_issue_cmd(enum cmd_index idx, uint32_t args);
+void sd_isr(void);
 /* 
  * @idx: index of an application command
  * @rca: relative card address used as argument to CMD55
  *
- * Return CMD_ERROR_RESPONSE_CONTENTS if an error was identified in
- * the CMD55 response or its APP_CMD bit was not set.
+ * Return CMD_ERROR_RESPONSE_CONTENTS if the APP_CMD bit was not set in
+ * the CMD55 response.
  */
 enum cmd_error sd_issue_acmd(enum cmd_index idx, uint32_t args, int rca);
-
-// TODO document?
-void sd_isr(void);
 
 /*
  * Verify the card can operate on the 2.7-3.6V host supply voltage.
@@ -85,8 +82,7 @@ enum cmd_error sd_issue_cmd8(void);
  *	Only valid on success.
  *
  * Return
- * - CMD_ERROR_RESPONSE_CONTENTS voltage range not supported in card's OCR register, or there was
- *	an error from sd_issue_acmd()
+ * - CMD_ERROR_RESPONSE_CONTENTS voltage range not supported in card's OCR register
  * - CMD_ERROR_GENERAL_TIMEOUT if the card did not power up in 1 second
  */
 enum cmd_error sd_issue_acmd41(bool host_capacity_support, bool *card_capacity_support_out);
@@ -110,7 +106,6 @@ enum cmd_error sd_issue_cmd7(int rca);
  * Card status response from RESPONSE_R1_NORMAL and RESPONSE_R1B_NORMAL_BUSY. 
  * @app_cmd: signals whether the next issued command is expected to be an application command
  * @card_state: stores an enum card_state except for CARD_STATE_INACTIVE. 
- * TODO keep this here? move it to reg.h?
  */
 struct card_status {
 	bits_t reserved1 : 3;
@@ -147,21 +142,20 @@ enum cmd_error sd_issue_cmd13(int rca, struct card_status *cs_out);
 
 /*
  * Set the addressed card's data bus width.
- * @4bit: true for 4-bit data bus width, false for 1-bit.
+ * @four_bit: true for 4-bit data bus width, false for 1-bit.
  */
 enum cmd_error sd_issue_acmd6(int rca, bool four_bit);
 
-/* TODO don't put this here? */
 /* Read block size in bytes. */
-#define DEFAULT_READ_BLKSZ 512
+#define READ_BLKSZ 512
 
 /*
- * Read a single block of size DEFAULT_READ_BLKSZ from the SD card into RAM.
+ * Read a single block of size READ_BLKSZ from the SD card into RAM.
  *
  * @ram_dest_addr: destination address in RAM to copy read data to
  * @sd_src_addr: source SD card address to read data from. If the card
  *	is SDSC this should be a byte unit address. If the card is SDHC 
- *	or SDXC	this should be a block unit address.
+ *	or SDXC	this should be a block unit address (LBA).
  */
 enum cmd_error sd_issue_cmd17(byte_t *ram_dest_addr, byte_t *sd_src_addr);
 
