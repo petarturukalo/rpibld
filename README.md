@@ -92,3 +92,4 @@ TODO
 - as find and use  more resources add them to resources section
 - need a config.txt (add a sample somewhere)
 - mention only works with sd not usb
+- add boot/ dir to git tracking?
