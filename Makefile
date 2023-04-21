@@ -36,7 +36,7 @@ imager: img/img.c
 
 clean:
 	find build -name '*.o' -print -delete
-	rm build/bootloader.elf bootloader
+	rm build/bootloader.elf bootloader imager
 
 # TODO rm install and uninstall - just used to automate testing
 install:

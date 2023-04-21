@@ -256,10 +256,11 @@ int main(int argc, char *argv[])
 	if (!img)
 		exit(EXIT_FAILURE);
 
-	printf("Writing image to partition %s\n", part);
-	if (file_write(part, (void *)img, img->imgsz))
+	if (file_write(part, (void *)img, img->imgsz)) {
+		printf("Wrote image of size %d bytes to partition %s\n", 
+		       img->imgsz, part);
 		ret = EXIT_SUCCESS;
-	else
+	} else
 		ret = EXIT_FAILURE;
 	freep(&img);
 	return ret;
