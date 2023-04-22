@@ -9,8 +9,13 @@ objs+=$(patsubst bld/sd/%.c, build/sd/%.o, $(wildcard bld/sd/*.c))
 cross_prefix=arm-none-eabi
 linker_script=boot.ld
 libgcc_searchdir=/usr/lib/gcc/arm-none-eabi/12.2.0
-# TODO -Iinclude
-CFLAGS=-nostdlib -r -march=armv7-a -Wunused-variable
+# The MBR primary partition that the imager imaged and that the
+# bootloader will load the OS from.
+image_partition=2
+# TODO -Werror=undef doing anything?
+CFLAGS=-nostdlib -r -march=armv7-a -Wunused-variable -Werror=undef -Iinclude \
+	-DIMAGE_PARTITION=$(image_partition)
+       
 # Link with -lgcc to resolve undefined reference to __aeabi_idivmod, 
 # needed to use the C modulo % operator. 
 LDFLAGS=-T $(linker_script) -static -L $(libgcc_searchdir)

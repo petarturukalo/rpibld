@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/stat.h>
+#include <stdint.h>
 #include "img.h"
 
 /* Read/write size. */
@@ -244,13 +245,13 @@ int main(int argc, char *argv[])
 		print_usage();
 		exit(EXIT_SUCCESS);
 	}
-	if (argc != 3) {
+	if (argc != 4) {
 		print_usage();
 		exit(EXIT_FAILURE);
 	}
-	part = argv[0];
-	kern_fpath = argv[1];
-	dtb_fpath = argv[2];
+	part = argv[1];
+	kern_fpath = argv[2];
+	dtb_fpath = argv[3];
 
 	img = build_image(kern_fpath, dtb_fpath);
 	if (!img)

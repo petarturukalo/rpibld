@@ -157,6 +157,6 @@ enum cmd_error sd_issue_acmd6(int rca, bool four_bit);
  *	is SDSC this should be a byte unit address. If the card is SDHC 
  *	or SDXC	this should be a block unit address (LBA).
  */
-enum cmd_error sd_issue_cmd17(byte_t *ram_dest_addr, byte_t *sd_src_addr);
+enum cmd_error sd_issue_cmd17(byte_t *ram_dest_addr, void *sd_src_addr);
 
 #endif

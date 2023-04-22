@@ -17,13 +17,13 @@ enum item_id {
 /*
  * Storage for arbitrary data.
  *
- * @id: identifies what is stored in the data field
- * @itemsz: size of the data stored in the data field
+ * @id: enum item_id identifier for what is stored in the data field
+ * @itemsz: size of the data stored in the data field, in bytes
  */
 struct item {
-	enum item_id id;
-	int itemsz;
-	char data[];
+	uint32_t id;
+	uint32_t itemsz;
+	uint8_t data[];
 };
 
 /*
@@ -38,8 +38,8 @@ struct item {
  *	by an item with ID ITEM_ID_END (its item size shall be 0).
  */
 struct image {
-	int magic;
-	int imgsz;
+	uint32_t magic;
+	uint32_t imgsz;
 	struct item items[];
 };
 

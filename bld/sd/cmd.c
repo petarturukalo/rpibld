@@ -460,7 +460,7 @@ enum cmd_error sd_issue_acmd6(int rca, bool four_bit)
 	return sd_issue_acmd(ACMD_IDX_SET_BUS_WIDTH, cast_bitfields(args, uint32_t), rca);
 }
 
-enum cmd_error sd_issue_cmd17(byte_t *ram_dest_addr, byte_t *sd_src_addr)
+enum cmd_error sd_issue_cmd17(byte_t *ram_dest_addr, void *sd_src_addr)
 {
 	enum cmd_error error;
 	uint32_t data;
