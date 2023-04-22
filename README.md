@@ -31,17 +31,26 @@ documentation available for the ARM CPU than the VPU.
 
 ## Imager
 
+The imager is used to image a partition. The imaged partition is called the "image partition"
+here, and is where the bootloader looks for the OS (and its data) to load. The image partition
+can be created with `fdisk`, and shall be a MBR primary partition large enough to store the OS
+files. The image partition does not need to be formatted with a file system, as the image is 
+just stored as raw bytes at the start of the partition.
+
 Compile the imager with `make imager`. Run it with help arguments `-h` or `--help` to
-see how to use it to image a partition. The imaged partition is called the "image partition"
-here, and is where the bootloader looks for the OS (and its data) to load.
+see how to use it to image a partition.
 
 ## Bootloader
 
-To let the bootloader know which partition to look for, before compiling, in the `Makefile`
-set the `image_partition` variable to the partition number of the image partition (e.g. 2).
+To let the bootloader know which partition to look for the image on, before compiling, in 
+the `Makefile` set the `image_partition` variable to the partition number of the image 
+partition (e.g. 2).
 
-Compile the bootloader with `make bootloader`. TODO install by renaming to kernel7l.img on the
-SD card's boot partition, etc.
+Cross compile the bootloader with `make bootloader`. 
+TODO 
+- install by renaming to kernel7l.img on the SD card's boot partition, etc.
+- explain don't need to cross compile if doing this on the rpi itself. explain which makefile
+	variable to set to cross compile
 
 ## error signalling?
 
