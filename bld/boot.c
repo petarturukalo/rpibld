@@ -23,6 +23,8 @@ void c_entry(void)
 	uint32_t part_lba;
 	uint32_t part_nblks;
 	struct image *img;
+	struct item *item;
+	uint32_t id;// TODO rm after
 
 	enable_interrupts();
 	/*gic_init();*/
@@ -57,7 +59,21 @@ void c_entry(void)
 	/* Read whole of image from image partition. */
 	if (!sd_read_bytes((byte_t *)img, (void *)part_lba, img->imgsz))
 		signal_error(ERROR_SD_READ);
+	/* Validate image contents. TODO mv this later */
+	item = img->items;
+	id = ITEM_ID_KERNEL;
+	/* TODO using mcmp() to avoid memory alignment issues. */
+	if (!mcmp(&item->id, &id, sizeof(uint32_t)))
+		signal_error(ERROR_IMAGE_CONTENTS);
+	item = (struct item *)((byte_t *)&item->data + item->itemsz);
+	id = ITEM_ID_DEVICE_TREE_BLOB;
+	if (!mcmp(&item->id, &id, sizeof(uint32_t)))
+		signal_error(ERROR_IMAGE_CONTENTS);
+	item = (struct item *)((byte_t *)&item->data + item->itemsz);
+	id = ITEM_ID_END;
+	if (!mcmp(&item->id, &id, sizeof(uint32_t)))
+		signal_error(ERROR_IMAGE_CONTENTS);
 
-	signal_error(9);
+	signal_error(10);
 	__asm("wfi");
 }

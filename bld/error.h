@@ -11,6 +11,7 @@
  * @ERROR_NO_IMAGE_MAGIC: no magic identifying an image found at the start of the
  *	image partition
  * @ERROR_IMAGE_OVERFLOW: size of image is greater than the boot partition
+ * @ERROR_IMAGE_CONTENTS: the contents of the image was not as expected
  */
 enum error_code {
 	/* Ensure these are set to an explicit value to know how many times it beeps. */
@@ -21,7 +22,8 @@ enum error_code {
 	ERROR_NO_MBR_MAGIC      = 5,
 	ERROR_INVALID_PARTITION = 6,
 	ERROR_NO_IMAGE_MAGIC    = 7,
-	ERROR_IMAGE_OVERFLOW    = 8
+	ERROR_IMAGE_OVERFLOW    = 8,
+	ERROR_IMAGE_CONTENTS    = 9
 };
 
 /*

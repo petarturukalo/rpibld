@@ -33,7 +33,8 @@ struct item {
  *
  * @magic: used to verify the start of the image after having loaded it from
  *	secondary storage. This will have value IMG_MAGIC.
- * @imgsz: size of the entire image in bytes, including the last zero item
+ * @imgsz: size of the entire image in bytes, including the last zero item, this
+ *	field, and the magic field (everything)
  * @items: the separate OS files/data stored in the image. This is terminated
  *	by an item with ID ITEM_ID_END (its item size shall be 0).
  */

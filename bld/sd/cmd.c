@@ -448,6 +448,8 @@ enum cmd_error sd_issue_read_cmd(enum cmd_index idx, byte_t *ram_dest_addr, void
 	 * TODO this is too slow. took ~40 seconds to read ~13K blks = 7 MB.
 	 * try speeding up by
 	 * - 4 byte at a time mcopy (but then need to document that ram dest addr MUST be 4-byte aligned)
+	 * - copy value in DATA register directly to ram dest addr
+	 * - for above confirm in asm that it looks quicker
 	 * - double check clock speed, bus width, etc., and expected MB/s transfer rates
 	 */
 	while (nblks--) {
