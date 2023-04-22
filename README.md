@@ -29,13 +29,19 @@ documentation available for the ARM CPU than the VPU.
 
 # Usage
 
-## Imager?
+## Imager
 
-TODO
+Compile the imager with `make imager`. Run it with help arguments `-h` or `--help` to
+see how to use it to image a partition. The imaged partition is called the "image partition"
+here, and is where the bootloader looks for the OS (and its data) to load.
 
-## #define partition?
+## Bootloader
 
-TODO
+To let the bootloader know which partition to look for, before compiling, in the `Makefile`
+set the `image_partition` variable to the partition number of the image partition (e.g. 2).
+
+Compile the bootloader with `make bootloader`. TODO install by renaming to kernel7l.img on the
+SD card's boot partition, etc.
 
 ## error signalling?
 
@@ -93,3 +99,4 @@ TODO
 - need a config.txt (add a sample somewhere)
 - mention only works with sd not usb
 - add boot/ dir to git tracking?
+- add "booting ARM linux" instructions to resources?

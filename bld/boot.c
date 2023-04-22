@@ -74,6 +74,12 @@ void c_entry(void)
 	if (!mcmp(&item->id, &id, sizeof(uint32_t)))
 		signal_error(ERROR_IMAGE_CONTENTS);
 
+	/* 
+	 * TODO cont at 'Booting ARM Linux'
+	 * - since using device tree don't need to set up the kernel tagged list?
+	 * - kernel decompresses itself, don't have to do that in the bootloader?
+	 */
+
 	signal_error(10);
 	__asm("wfi");
 }
