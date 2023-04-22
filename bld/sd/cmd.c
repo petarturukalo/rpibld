@@ -140,8 +140,6 @@ static void set_cmdtm_transfer_mode(struct command *cmd, struct cmdtm *cmdtm)
 	if (cmd->index == CMD_IDX_READ_MULTIPLE_BLOCK) {
 		cmdtm->block_cnt_en = true;
 		cmdtm->multi_block = true;
-		/* TODO Don't do this automatically? also need to check whether card supports CMD23? */
-		/*cmdtm->auto_cmd_en = CMDTM_TM_AUTO_CMD_EN_CMD23;*/
 	}
 }
 
@@ -166,16 +164,7 @@ static void set_cmdtm(struct command *cmd, struct cmdtm *cmdtm)
 }
 
 /* 
- * The interrupt flags set from the most recently generated interrupt.
- */
-static struct interrupt interrupt;
-
-/* 
  * If the return is zero then timed out waiting for any interrupt.
- *
- * Ensure the 'interrupt' global variable is zeroed before the interrupt
- * has a chance to be triggered (and before calling this) to avoid returning 
- * a false positive.
  */
 static struct interrupt sd_wait_for_any_interrupt(void)
 {
@@ -184,28 +173,17 @@ static struct interrupt sd_wait_for_any_interrupt(void)
 
 	mzero(&irpt, sizeof(irpt));
 
-	/*
-	 * The sleep is done instead of a wfi to avoid a race condition: if the interrupt 
-	 * happens after the load instruction to load the interrupt variable, but before 
-	 * the wfi instruction, this would get stuck waiting for an interrupt that will 
-	 * never trigger. 
-	 */
 	timer_poll_start(500, &ts);
 	do {
-		if (cast_bitfields(interrupt, uint32_t))   {
-			mcopy(&interrupt, &irpt, sizeof(irpt));
+		register_get_out(&sd_access, INTERRUPT, &irpt);
+
+		if (cast_bitfields(irpt, uint32_t)) {
+			/* Clear triggered interrupts. */
+			register_set_ptr(&sd_access, INTERRUPT, &irpt);
 			break;
 		}
 		usleep(50);
 	} while (!timer_poll_done(&ts));
-
-	/* 
-	 * Zero global in case subsequent calls to this are chained together. 
-	 *
-	 * WARNING if the subsequent interrupt triggers before this zeroing
-	 * then the interrupt will be lost (race condition).
-	 */
-	mzero(&interrupt, sizeof(interrupt));
 
 	return irpt;
 }
@@ -220,7 +198,7 @@ enum cmd_error sd_wait_for_interrupt(int interrupt_mask)
 
 	if (!cast_bitfields(irpt, uint32_t))
 		return CMD_ERROR_WAIT_FOR_INTERRUPT_TIMEOUT;
-	if (interrupt.error) {
+	if (irpt.error) {
 		/* 
 		 * Note might be worth checking which error it was and then retrying 
 		 * instead of failing. 
@@ -272,7 +250,6 @@ enum cmd_error sd_issue_cmd(enum cmd_index idx, uint32_t args)
 	register_set(&sd_access, ARG1, args);
 
 	set_cmdtm(cmd, &cmdtm);
-	mzero(&interrupt, sizeof(interrupt));
 
 	/* Issue the command, which should trigger an interrupt. */
 	register_set_ptr(&sd_access, CMDTM, &cmdtm);
@@ -286,14 +263,6 @@ enum cmd_error sd_issue_cmd(enum cmd_index idx, uint32_t args)
 			return CMD_ERROR_CARD_STATUS_ERROR;;
 	}
 	return error;
-}
-
-void sd_isr(void)
-{
-	/* Set global for use by non-ISR code. */
-	register_get_out(&sd_access, INTERRUPT, &interrupt);
-	/* Clear all triggered interrupts. */
-	register_set_ptr(&sd_access, INTERRUPT, &interrupt);
 }
 
 enum cmd_error sd_issue_acmd(enum cmd_index idx, uint32_t args, int rca)
@@ -475,10 +444,11 @@ enum cmd_error sd_issue_read_cmd(enum cmd_index idx, byte_t *ram_dest_addr, void
 	error = sd_issue_cmd(idx, (uint32_t)sd_src_addr);
 	if (error != CMD_ERROR_NONE)
 		return error;
-	/*
-	 * WARNING the wait for interrupts done here after sd_issue_cmd() are subject 
-	 * to race conditions. Although unlikely to happen, the race conditions can
-	 * be prevented by polling for triggered interrupts instead of servicing them.
+	/* 
+	 * TODO this is too slow. took ~40 seconds to read ~13K blks = 7 MB.
+	 * try speeding up by
+	 * - 4 byte at a time mcopy (but then need to document that ram dest addr MUST be 4-byte aligned)
+	 * - double check clock speed, bus width, etc., and expected MB/s transfer rates
 	 */
 	while (nblks--) {
 		error = sd_wait_for_interrupt(INTERRUPT_READ_READY);

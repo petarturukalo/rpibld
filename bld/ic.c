@@ -45,10 +45,7 @@ void ic_enable_interrupts(void)
 /* Enable VideoCore interrupts: */
 	/* Enable system timer channel 1. */
 	register_set(&armc_access, IRQ0_SET_EN_0, 1<<1);
-	/* Enable MMC. */
-	// TODO rm unused later on and comment what this is enabling (or name the shift)
-	register_set(&armc_access, IRQ0_SET_EN_1, 1<<3);
-	register_set(&armc_access, IRQ0_SET_EN_1, 1<<24);
+	/* Enable SD/MMC. */
 	register_set(&armc_access, IRQ0_SET_EN_1, 1<<30);
 }
 
@@ -67,14 +64,8 @@ static enum irq get_irq_source(void)
 			if (register_get(&armc_access, IRQ0_PENDING0)&1<<1) 
 				return IRQ_VC_TIMER1;
 		} else if (pending2&1<<25) {
-			uint32_t pending1 = register_get(&armc_access, IRQ0_PENDING1);
-		
 			// TODO name these shifts duplicated here and in ic_enable_interrupts()
-			if (pending1&1<<3)
-				return IRQ_VC_SDC;
-			if (pending1&1<<24)
-				return IRQ_VC_SDHOST;
-			if (pending1&1<<30) 
+			if (register_get(&armc_access, IRQ0_PENDING1)&1<<30) 
 				return IRQ_VC_EMMC2;
 		}
 	}
@@ -89,14 +80,11 @@ void ic_irq_exception_handler(void)
 		case IRQ_VC_TIMER1:
 			timer_isr();
 			break;
-		case IRQ_VC_SDC:
-		case IRQ_VC_SDHOST:
-			/* TODO get rid of this interrupt if find it never gets triggered. */
-			led_init();
-			led_turn_on();
-			break;
 		case IRQ_VC_EMMC2:
-			sd_isr();
+			/* 
+			 * Polling used instead. 
+			 * See comments in sd_enable_interrupts() for why. 
+			 */
 			break;
 		default:
 		case IRQ_UNIMPLEMENTED:

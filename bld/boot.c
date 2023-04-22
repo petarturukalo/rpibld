@@ -55,9 +55,7 @@ void c_entry(void)
 		signal_error(ERROR_IMAGE_OVERFLOW);
 
 	/* Read whole of image from image partition. */
-	/*if (!sd_read_bytes((byte_t *)img, (void *)part_lba, img->imgsz))*/
-	/* TODO fails (hangs) at > ~300 blocks. */
-	if (!sd_read_blocks((byte_t *)img, (void *)part_lba, 325))
+	if (!sd_read_bytes((byte_t *)img, (void *)part_lba, img->imgsz))
 		signal_error(ERROR_SD_READ);
 
 	signal_error(9);

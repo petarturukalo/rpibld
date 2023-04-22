@@ -198,8 +198,11 @@ static void sd_enable_interrupts(struct interrupt irpt)
 {
 	/* Enable triggered interrupts to be flagged in the INTERRUPT register. */
 	register_enable_bits(&sd_access, IRPT_MASK, cast_bitfields(irpt, uint32_t));
-	/* Enable interrupt generation. */
-	register_enable_bits(&sd_access, IRPT_EN, cast_bitfields(irpt, uint32_t));
+	/*
+	 * Interrupt generation is not enabled in the IRPT_EN register, and polling opted
+	 * for instead because of race conditions that would make the multi block read hang
+	 * if reading more than around 300 blocks at a time.
+	 */
 }
 
 static void sd_enable_cmd_interrupts(void)
