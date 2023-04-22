@@ -1,6 +1,7 @@
 /*
  * Generic interrupt controller (GIC). 
  * Enabled if enable_gic=1 in config.txt.
+ * TODO delete file
  */
 #ifndef GIC_H
 #define GIC_H

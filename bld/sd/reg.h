@@ -52,7 +52,12 @@ struct blksizecnt {
 struct cmdtm {
 	bits_t reserved1 : 1;
 	bits_t block_cnt_en : 1;
-	bits_t auto_cmd_en : 2;
+	enum  {
+		CMDTM_TM_AUTO_CMD_EN_NONE  = 0b00,
+		CMDTM_TM_AUTO_CMD_EN_CMD12 = 0b01,
+		CMDTM_TM_AUTO_CMD_EN_CMD23 = 0b10,
+		CMDTM_TM_AUTO_CMD_EN_RESVD = 0b11
+	} auto_cmd_en : 2;
 	enum {
 		CMDTM_TM_DAT_DIR_READ  = 1,
 		CMDTM_TM_DAT_DIR_WRITE = 0

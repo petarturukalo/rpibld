@@ -53,16 +53,18 @@ struct command {
 
 /* List of implemented SD commands. */
 struct command commands[] = {
-	{ CMD_IDX_GO_IDLE_STATE,      CMD_TYPE_BC,   CMD_RESPONSE_NONE },
-	{ CMD_IDX_ALL_SEND_CID,       CMD_TYPE_BCR,  CMD_RESPONSE_R2_CID_OR_CSD_REG },
-	{ CMD_IDX_SEND_RELATIVE_ADDR, CMD_TYPE_BCR,  CMD_RESPONSE_R6_PUBLISHED_RCA },
-	{ CMD_IDX_SELECT_CARD,        CMD_TYPE_AC,   CMD_RESPONSE_R1B_NORMAL_BUSY },
-	{ CMD_IDX_SEND_IF_COND,       CMD_TYPE_BCR,  CMD_RESPONSE_R7_CARD_INTERFACE_CONDITION },
-	{ CMD_IDX_SEND_STATUS,        CMD_TYPE_AC,   CMD_RESPONSE_R1_NORMAL },
-	{ CMD_IDX_READ_SINGLE_BLOCK,  CMD_TYPE_ADTC, CMD_RESPONSE_R1_NORMAL },
-	{ CMD_IDX_APP_CMD,            CMD_TYPE_AC,   CMD_RESPONSE_R1_NORMAL },
-	{ ACMD_IDX_SET_BUS_WIDTH,     CMD_TYPE_AC,   CMD_RESPONSE_R1_NORMAL },
-	{ ACMD_IDX_SD_SEND_OP_COND,   CMD_TYPE_BCR,  CMD_RESPONSE_R3_OCR_REG }
+	{ CMD_IDX_GO_IDLE_STATE,       CMD_TYPE_BC,   CMD_RESPONSE_NONE },
+	{ CMD_IDX_ALL_SEND_CID,        CMD_TYPE_BCR,  CMD_RESPONSE_R2_CID_OR_CSD_REG },
+	{ CMD_IDX_SEND_RELATIVE_ADDR,  CMD_TYPE_BCR,  CMD_RESPONSE_R6_PUBLISHED_RCA },
+	{ CMD_IDX_SELECT_CARD,         CMD_TYPE_AC,   CMD_RESPONSE_R1B_NORMAL_BUSY },
+	{ CMD_IDX_SEND_IF_COND,        CMD_TYPE_BCR,  CMD_RESPONSE_R7_CARD_INTERFACE_CONDITION },
+	{ CMD_IDX_SEND_STATUS,         CMD_TYPE_AC,   CMD_RESPONSE_R1_NORMAL },
+	{ CMD_IDX_READ_SINGLE_BLOCK,   CMD_TYPE_ADTC, CMD_RESPONSE_R1_NORMAL },
+	{ CMD_IDX_READ_MULTIPLE_BLOCK, CMD_TYPE_ADTC, CMD_RESPONSE_R1_NORMAL },
+	{ CMD_IDX_SET_BLOCK_COUNT,     CMD_TYPE_AC,   CMD_RESPONSE_R1_NORMAL },
+	{ CMD_IDX_APP_CMD,             CMD_TYPE_AC,   CMD_RESPONSE_R1_NORMAL },
+	{ ACMD_IDX_SET_BUS_WIDTH,      CMD_TYPE_AC,   CMD_RESPONSE_R1_NORMAL },
+	{ ACMD_IDX_SD_SEND_OP_COND,    CMD_TYPE_BCR,  CMD_RESPONSE_R3_OCR_REG }
 };
 
 static struct command *get_command(enum cmd_index idx)
@@ -132,12 +134,15 @@ static void set_cmdtm_idx_and_crc_chk(struct command *cmd, struct cmdtm *cmdtm)
  */
 static void set_cmdtm_transfer_mode(struct command *cmd, struct cmdtm *cmdtm)
 {
-	/* 
-	 * As more commands are implemented they will need to be added in conditions
-	 * here, and more transfer mode fields set. 
-	 */
-	if (cmd->index == CMD_IDX_READ_SINGLE_BLOCK)
+	/* As more commands are implemented they will need to be added in conditions here. */
+	if (cmd->index == CMD_IDX_READ_SINGLE_BLOCK || cmd->index == CMD_IDX_READ_MULTIPLE_BLOCK)
 		cmdtm->data_transfer_direction = CMDTM_TM_DAT_DIR_READ;
+	if (cmd->index == CMD_IDX_READ_MULTIPLE_BLOCK) {
+		cmdtm->block_cnt_en = true;
+		cmdtm->multi_block = true;
+		/* TODO Don't do this automatically? also need to check whether card supports CMD23? */
+		/*cmdtm->auto_cmd_en = CMDTM_TM_AUTO_CMD_EN_CMD23;*/
+	}
 }
 
 /*
@@ -460,14 +465,14 @@ enum cmd_error sd_issue_acmd6(int rca, bool four_bit)
 	return sd_issue_acmd(ACMD_IDX_SET_BUS_WIDTH, cast_bitfields(args, uint32_t), rca);
 }
 
-enum cmd_error sd_issue_cmd17(byte_t *ram_dest_addr, void *sd_src_addr)
+enum cmd_error sd_issue_read_cmd(enum cmd_index idx, byte_t *ram_dest_addr, void *sd_src_addr, int nblks)
 {
 	enum cmd_error error;
 	uint32_t data;
-	int bytes_remaining = READ_BLKSZ;
+	int bytes_remaining;
 	int bytes_read = sizeof(data);
 
-	error = sd_issue_cmd(CMD_IDX_READ_SINGLE_BLOCK, (uint32_t)sd_src_addr);
+	error = sd_issue_cmd(idx, (uint32_t)sd_src_addr);
 	if (error != CMD_ERROR_NONE)
 		return error;
 	/*
@@ -475,21 +480,34 @@ enum cmd_error sd_issue_cmd17(byte_t *ram_dest_addr, void *sd_src_addr)
 	 * to race conditions. Although unlikely to happen, the race conditions can
 	 * be prevented by polling for triggered interrupts instead of servicing them.
 	 */
-	error = sd_wait_for_interrupt(INTERRUPT_READ_READY);
-	if (error != CMD_ERROR_NONE)
-		return error;
-	/* Copy read block from host buffer to RAM. */
-	while (bytes_remaining > 0) {
-		data = register_get(&sd_access, DATA);
+	while (nblks--) {
+		error = sd_wait_for_interrupt(INTERRUPT_READ_READY);
+		if (error != CMD_ERROR_NONE)
+			return error;
+		/* Copy read block from host buffer to RAM. */
+		bytes_remaining = READ_BLKSZ;
+		while (bytes_remaining > 0) {
+			data = register_get(&sd_access, DATA);
 
-		/* 
-		 * The default read block size is a multiple of the size of the DATA 
-		 * register in bytes, so it's always safe to copy all of what was read.
-		 */
-		mcopy(&data, ram_dest_addr, bytes_read);
+			/* 
+			 * The default read block size is a multiple of the size of the DATA 
+			 * register in bytes, so it's always safe to copy all of what was read.
+			 */
+			mcopy(&data, ram_dest_addr, bytes_read);
 
-		ram_dest_addr += bytes_read;
-		bytes_remaining -= bytes_read;
+			ram_dest_addr += bytes_read;
+			bytes_remaining -= bytes_read;
+		}
 	}
 	return sd_wait_for_interrupt(INTERRUPT_TRANSFER_COMPLETE);
+}
+
+enum cmd_error sd_issue_cmd17(byte_t *ram_dest_addr, void *sd_src_addr)
+{
+	return sd_issue_read_cmd(CMD_IDX_READ_SINGLE_BLOCK, ram_dest_addr, sd_src_addr, 1);
+}
+
+enum cmd_error sd_issue_cmd18(byte_t *ram_dest_addr, void *sd_src_addr, int nblks)
+{
+	return sd_issue_read_cmd(CMD_IDX_READ_MULTIPLE_BLOCK, ram_dest_addr, sd_src_addr, nblks);
 }

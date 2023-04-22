@@ -33,7 +33,7 @@ void c_entry(void)
 		signal_error(ERROR_SD_INIT);
 	mbr_base_addr = heap_get_base_address();
 	/* Read MBR from first block on SD card into RAM. */
-	if (!sd_read_block(mbr_base_addr, (void *)0))
+	if (!sd_read_blocks(mbr_base_addr, (void *)0, 1))
 		signal_error(ERROR_SD_READ);
 	if (!mbr_magic(mbr_base_addr))
 		signal_error(ERROR_NO_MBR_MAGIC);
@@ -45,13 +45,20 @@ void c_entry(void)
 
 	/* Got all the data needed from MBR so safe to overwrite it in heap. */
 	img = heap_get_base_address();
-	/* TODO if always do a signal_error(ERROR_SD_READ) then put it in sd_read() instead? */
-	if (!sd_read_block((byte_t *)img, (void *)part_lba))
+	/* Read first block of image from image partition. */
+	if (!sd_read_blocks((byte_t *)img, (void *)part_lba, 1))
+		/* TODO if always do a signal_error(ERROR_SD_READ) then put it in sd_read() instead? */
 		signal_error(ERROR_SD_READ);
 	if (img->magic != IMG_MAGIC)
 		signal_error(ERROR_NO_IMAGE_MAGIC);
 	if (img->imgsz > part_nblks*READ_BLKSZ)
 		signal_error(ERROR_IMAGE_OVERFLOW);
+
+	/* Read whole of image from image partition. */
+	/*if (!sd_read_bytes((byte_t *)img, (void *)part_lba, img->imgsz))*/
+	/* TODO fails (hangs) at > ~300 blocks. */
+	if (!sd_read_blocks((byte_t *)img, (void *)part_lba, 325))
+		signal_error(ERROR_SD_READ);
 
 	signal_error(9);
 	__asm("wfi");

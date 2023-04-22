@@ -10,17 +10,19 @@
  * Index identifier for a command. 
  */
 enum cmd_index {
-	CMD_IDX_GO_IDLE_STATE      = 0,
-	CMD_IDX_ALL_SEND_CID       = 2,
-	CMD_IDX_SEND_RELATIVE_ADDR = 3,
-	CMD_IDX_SELECT_CARD        = 7,
-	CMD_IDX_SEND_IF_COND       = 8,  /* Send interface condition. */
-	CMD_IDX_SEND_STATUS	   = 13,
-	CMD_IDX_READ_SINGLE_BLOCK  = 17,
-	CMD_IDX_APP_CMD            = 55,
+	CMD_IDX_GO_IDLE_STATE       = 0,
+	CMD_IDX_ALL_SEND_CID        = 2,
+	CMD_IDX_SEND_RELATIVE_ADDR  = 3,
+	CMD_IDX_SELECT_CARD         = 7,
+	CMD_IDX_SEND_IF_COND        = 8,  /* Send interface condition. */
+	CMD_IDX_SEND_STATUS         = 13,
+	CMD_IDX_READ_SINGLE_BLOCK   = 17,
+	CMD_IDX_READ_MULTIPLE_BLOCK = 18,
+	CMD_IDX_SET_BLOCK_COUNT     = 23,
+	CMD_IDX_APP_CMD             = 55,
 /* Application commands. */
-	ACMD_IDX_SET_BUS_WIDTH     =  6|IS_APP_CMD,
-	ACMD_IDX_SD_SEND_OP_COND   = 41|IS_APP_CMD  /* Send operating condition register. */
+	ACMD_IDX_SET_BUS_WIDTH      = 6|IS_APP_CMD,
+	ACMD_IDX_SD_SEND_OP_COND    = 41|IS_APP_CMD  /* Send operating condition register. */
 };
 
 /*
@@ -150,13 +152,16 @@ enum cmd_error sd_issue_acmd6(int rca, bool four_bit);
 #define READ_BLKSZ 512
 
 /*
- * Read a single block of size READ_BLKSZ from the SD card into RAM.
+ * Read a single block (CMD17) or multiple blocks (CMD18) of size READ_BLKSZ 
+ * from the SD card into RAM.
  *
  * @ram_dest_addr: destination address in RAM to copy read data to
  * @sd_src_addr: source SD card address to read data from. If the card
  *	is SDSC this should be a byte unit address. If the card is SDHC 
  *	or SDXC	this should be a block unit address (LBA).
+ * @nblks: number of blocks to read
  */
 enum cmd_error sd_issue_cmd17(byte_t *ram_dest_addr, void *sd_src_addr);
+enum cmd_error sd_issue_cmd18(byte_t *ram_dest_addr, void *sd_src_addr, int nblks);
 
 #endif

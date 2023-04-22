@@ -375,10 +375,11 @@ enum sd_init_error sd_init(void)
 	return sd_init_card(&card);
 }
 
-bool sd_read_block_card(byte_t *ram_dest_addr, void *sd_src_lba, struct card *card)
+bool sd_read_blocks_card(byte_t *ram_dest_addr, void *sd_src_lba, int nblks, 
+			 struct card *card)
 {
 	struct blksizecnt blkszcnt;
-	enum cmd_error error;
+	enum cmd_error error = CMD_ERROR_NONE;
 
 	/* Convert LBA / block unit address to byte unit address for SDSC. */
 	if (!card->sdhc_or_sdxc) {
@@ -387,14 +388,47 @@ bool sd_read_block_card(byte_t *ram_dest_addr, void *sd_src_lba, struct card *ca
 	/* Set block size and count. */
 	mzero(&blkszcnt, sizeof(blkszcnt));
 	blkszcnt.blksize = READ_BLKSZ;
-	blkszcnt.blkcnt = 1;
+	/* 
+	 * TODO blkcnt field only 16-bits, so can only transfer up to 33.5 MB at
+	 * a time. will need to loop if size is bigger than this. (loop in wrapper)
+	 */
+	blkszcnt.blkcnt = nblks;
 	register_set(&sd_access, BLKSIZECNT, cast_bitfields(blkszcnt, uint32_t));
 
-	error = sd_issue_cmd17(ram_dest_addr, sd_src_lba);
+	if (nblks == 1) {
+		/* Single block transfer */
+		error = sd_issue_cmd17(ram_dest_addr, sd_src_lba);
+	} else if (nblks > 1) {
+		/* Multi block transfer. */
+		/* TODO ensure CMD23 is supported? */
+		error = sd_issue_cmd(CMD_IDX_SET_BLOCK_COUNT, nblks);
+		if (error != CMD_ERROR_NONE)
+			return false;
+		error = sd_issue_cmd18(ram_dest_addr, sd_src_lba, nblks);
+	}
 	return error == CMD_ERROR_NONE;
 }
 
-bool sd_read_block(byte_t *ram_dest_addr, void *sd_src_lba)
+bool sd_read_blocks(byte_t *ram_dest_addr, void *sd_src_lba, int nblks)
 {
-	return sd_read_block_card(ram_dest_addr, sd_src_lba, &card);
+	return sd_read_blocks_card(ram_dest_addr, sd_src_lba, nblks, &card);
+}
+
+/*
+ * Get the number of blocks required to read a number of bytes.
+ * If the number of bytes isn't a multiple of READ_BLKSZ the last block
+ * will have unused bytes.
+ */
+static int bytes_to_blocks(int bytes)
+{
+	int nblks = bytes/READ_BLKSZ;
+	if (bytes%READ_BLKSZ)
+		++nblks;
+	return nblks;
+}
+
+bool sd_read_bytes(byte_t *ram_dest_addr, void *sd_src_lba, int bytes)
+{
+	int nblks = bytes_to_blocks(bytes);
+	return sd_read_blocks(ram_dest_addr, sd_src_lba, nblks);
 }
