@@ -33,7 +33,7 @@ enum card_state {
 	CARD_STATE_IDENTIFICATION,
 /* Data transfer operation mode. */
 	CARD_STATE_STANDBY,
-	CARD_STATE_TRANFSFER,
+	CARD_STATE_TRANSFER,
 /* Below aren't set explicitly (but are still data transfer). */
 	CARD_STATE_SENDING_DATA,
 	CARD_STATE_RECEIVE_DATA,
@@ -180,7 +180,14 @@ static void sd_supply_clock(int clock_rate)
 	int clock_divider = sd_8bit_clock_divider(EMMC2_EXPECTED_BASE_CLOCK_HZ, clock_rate);
 
 	/* Turn off clock in case it was already on (required to change frequency). */
-	register_disable_bits(&sd_access, CONTROL1, CONTROL1_CLK_EN_BITS);
+	register_disable_bits(&sd_access, CONTROL1, CONTROL1_CLK_EN|CONTROL1_INT_CLK_EN);
+	/* 
+	 * Zero previous clock divider bits.
+	 * TODO didn't fix problem of being able to change clock but it should have?
+	 * from printing can confirm it's clearing the previous divider. or maybe it did change
+	 * but it's still slow for w/e reason
+	 */
+	register_disable_bits(&sd_access, CONTROL1, CONTROL1_CLK_FREQ_SEL);
 	/* Set clock divider and enable internal clock. */
 	register_enable_bits(&sd_access, CONTROL1, 
 			     clock_divider<<CONTROL1_CLK_FREQ_SEL_SHIFT | CONTROL1_INT_CLK_EN);
@@ -350,6 +357,7 @@ enum sd_init_error sd_init_card(struct card *card_out)
 	 * default speed.
 	 */
 	// TODO confirm new clock gets set up correctly by comparing 1-bit vs 4-bit read speeds
+	// TODO try a higher clock rate to check whether base is actually 100 MHz
 	sd_supply_clock(DEFAULT_SPEED_CLOCK_RATE_HZ);
 
 	/* Put card in transfer state. */
@@ -358,10 +366,10 @@ enum sd_init_error sd_init_card(struct card *card_out)
 		return SD_INIT_ERROR_ISSUE_CMD;
 	/* Verify card got put into transfer state. */
 	cmd_error = sd_issue_cmd13(card_out->rca, &cs);
-	if (cmd_error != CMD_ERROR_NONE || cs.current_state != CARD_STATE_TRANFSFER) 
+	if (cmd_error != CMD_ERROR_NONE || cs.current_state != CARD_STATE_TRANSFER) 
 		return SD_INIT_ERROR_ISSUE_CMD;
 
-	card_out->state = CARD_STATE_TRANFSFER;
+	card_out->state = CARD_STATE_TRANSFER;
 
 	sd_init_error = sd_set_4bit_data_bus_width(card_out->rca);
 	if (sd_init_error != SD_INIT_ERROR_NONE)

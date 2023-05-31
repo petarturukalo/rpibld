@@ -23,7 +23,7 @@ This bootloader program is implemented as a (redundant) fourth stage bootloader,
 renamed to `/boot/kernel7l.img` so it is loaded by the third stage bootloader instead
 of the kernel. Although this is implemented as a redundant step in the boot sequence,
 it is done because the first three bootloader stages are run on the VideoCore/VPU, 
-while the loaded "kernel" is run on the ARM CPU - and there is far more official 
+while the loaded "kernel" is run on the ARM CPU, and there is far more official 
 documentation available for the ARM CPU than the VPU.
 
 
@@ -46,11 +46,12 @@ To let the bootloader know which partition to look for the image on, before comp
 the `Makefile` set the `image_partition` variable to the partition number of the image 
 partition (e.g. 2).
 
-Cross compile the bootloader with `make bootloader`. 
+Cross compile the bootloader with `make bootloader`.
 TODO 
-- install by renaming to kernel7l.img on the SD card's boot partition, etc.
-- explain don't need to cross compile if doing this on the rpi itself. explain which makefile
-	variable to set to cross compile
+- minimum set of files needed on the /boot part of the SD card. 
+- install by moving the bootloader to kernel7l.img on the SD card's boot partition
+- explain don't need to cross compile if doing this on the rpi itself. 
+	explain which makefile variable to set to cross compile
 
 ## error signalling?
 
@@ -65,7 +66,7 @@ which will help in understanding the source.
 **General**
 * [BCM2711 datasheet](https://datasheets.raspberrypi.com/bcm2711/bcm2711-peripherals.pdf): 
 SoC used in the Raspberry Pi 4 Model B
-* [BCM2711 device tree source](https://github.com/raspberrypi/firmware): used to find some 
+* [BCM2711 device tree source](https://github.com/raspberrypi/firmware): used to find some peripheral
 memory-mapped register base addresses not available in the BCM2711 datasheet, clock rates, 
 etc. To get the source download the linked repo and convert the Raspberry Pi 4 Model B 
 device tree blob to its source with device tree compiler command `dtc -I dtb -O dts boot/bcm2711-rpi-4-b.dtb`. 
@@ -102,10 +103,13 @@ the host controller specification which the SD peripheral implements
 the physical layer specification which the SD peripheral implements
 
 
+
+TODO ADD THIS TO THE ARM CPU SECTION: AAPCS arm procedure call standard https://github.com/ARM-software/abi-aa/blob/844a79fd4c77252a11342709e3b27b2c9f590cf1/aapcs32/aapcs32.rst - helpful to know which registers are safe to use when writing assembly that will be mixed with compiled C
+
 TODO
 - put in links/references for Bootloader Stages section?
-- as find and use  more resources add them to resources section
-- need a config.txt (add a sample somewhere)
+- as find and use more resources add them to resources section
+- mention minimum /boot partition files like config.txt needed 
+	(see uncommitted boot-part dir; provide committed default files)
 - mention only works with sd not usb
-- add boot/ dir to git tracking?
-- add "booting ARM linux" instructions to resources?
+- add "booting ARM linux" instructions to resources? (after find it's needed)

@@ -7,6 +7,12 @@
 #include "type.h"
 
 /*
+ * Base address of main peripherals section in ARM low peripheral mode 
+ * view of address map.
+ */
+#define ARM_LO_MAIN_PERIPH_BASE_ADDR 0xfc000000
+
+/*
  * Offsets for accessing a peripheral's memory-mapped registers.
  *
  * @periph_base_off: Offset in bytes to a peripheral's memory-mapped base address from
@@ -44,8 +50,6 @@ struct periph_access {
  *	to access
  */
 volatile void register_set(struct periph_access *periph, int register_select, uint32_t value);
-// TODO delete 16bit if unused
-volatile void register_set_16bit(struct periph_access *periph, int register_select, uint16_t value);
 volatile void register_set_ptr(struct periph_access *periph, int register_select, void *value);
 volatile uint32_t register_get(struct periph_access *periph, int register_select);
 volatile void register_get_out(struct periph_access *periph, int register_select, void *out);

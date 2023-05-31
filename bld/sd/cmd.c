@@ -335,7 +335,7 @@ enum cmd_error sd_issue_acmd41(bool host_capacity_support, bool *card_capacity_s
 	 * non-zero ACMD41 is init ACMD41. Do inquiry first so can get the card's voltage window, 
 	 * since if it doesn't support the voltage window the init ACMD41 would put the card into 
 	 * the inactive state.
-	 * TOD confirm when get a card
+	 * TODO confirm when get a card
 	 */
 	mzero(&args, sizeof(args));
 	error = sd_issue_acmd(ACMD_IDX_SD_SEND_OP_COND, args, rca);
@@ -437,39 +437,46 @@ enum cmd_error sd_issue_acmd6(int rca, bool four_bit)
 enum cmd_error sd_issue_read_cmd(enum cmd_index idx, byte_t *ram_dest_addr, void *sd_src_addr, int nblks)
 {
 	enum cmd_error error;
-	uint32_t data;
-	int bytes_remaining;
-	int bytes_read = sizeof(data);
 
 	error = sd_issue_cmd(idx, (uint32_t)sd_src_addr);
 	if (error != CMD_ERROR_NONE)
 		return error;
+	/*
+	 * This is written in assembly for the performance improvement.
+	 * Here the non-scratch registers starting at r4 counting upwards
+	 * are used.
+	 * Register r4 stores the SD DATA register address and is calculated from
+	 * ARM_LO_MAIN_PERIPH_BASE_ADDR + sd_access.periph_base_off + DATA. 
+	 * Peripheral access functions such as register_get() are avoided here
+	 * for performance reasons.
+	 */
+	__asm__("ldr r4, =0xfe340020\n\t"
+		"mov r5, %0"
+		: 
+		: "r" (ram_dest_addr));
 	/* 
-	 * TODO this is too slow. took ~40 seconds to read ~13K blks = 7 MB.
-	 * try speeding up by
-	 * - 4 byte at a time mcopy (but then need to document that ram dest addr MUST be 4-byte aligned)
-	 * - copy value in DATA register directly to ram dest addr
-	 * - for above confirm in asm that it looks quicker
+	 * TODO this is too slow. took ~40 seconds to read ~13K blks = 7 MB. 
+	 * better now and down to ~3.7 seconds, but can still be improved.
 	 * - double check clock speed, bus width, etc., and expected MB/s transfer rates
+	 * - try enabling data cache so writes go to cache instead of RAM
 	 */
 	while (nblks--) {
 		error = sd_wait_for_interrupt(INTERRUPT_READ_READY);
 		if (error != CMD_ERROR_NONE)
 			return error;
 		/* Copy read block from host buffer to RAM. */
-		bytes_remaining = READ_BLKSZ;
-		while (bytes_remaining > 0) {
-			data = register_get(&sd_access, DATA);
-
-			/* 
-			 * The default read block size is a multiple of the size of the DATA 
-			 * register in bytes, so it's always safe to copy all of what was read.
-			 */
-			mcopy(&data, ram_dest_addr, bytes_read);
-
-			ram_dest_addr += bytes_read;
-			bytes_remaining -= bytes_read;
-		}
+		// TODO don't need barriers on the access because only mixing access
+		// with INTERRUPT reg that will have barriers used? 
+		// TODO assert ram_dest_addr is 4-byte aligned
+		__asm__("mov r6, %0\n\t"
+			"read_data:\n\t"
+			"ldr r7, [r4]\n\t"
+			"str r7, [r5]\n\t"
+			"add r5, r5, #4\n\t"
+			"subs r6, r6, #4\n\t"
+			"bne read_data"
+			:
+			: "r" (READ_BLKSZ));
 	}
 	return sd_wait_for_interrupt(INTERRUPT_TRANSFER_COMPLETE);
 }

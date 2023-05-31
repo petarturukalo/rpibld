@@ -1,6 +1,5 @@
 /*
- * Read access to SD (Secure Digital) / (embedded) MMC (MultiMediaCard) 
- * secondary storage.
+ * Read access to SD (Secure Digital) secondary storage.
  */
 #ifndef SD_H
 #define SD_H
@@ -20,6 +19,7 @@ enum sd_init_error {
  * Initialise the inserted SD card so that it is ready for data
  * transfer with sd_read_blocks(). The card is initialised to 
  * 4-bit data bus width, 25 MHz clock, default speed bus mode.
+ * TODO supposedly up to 12.5 MB/sec transfer rate
  */
 enum sd_init_error sd_init(void);
 

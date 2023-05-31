@@ -132,11 +132,11 @@ struct interrupt {
 
 /* Control 1 register fields. */
 /* Mask for clock enable, internal clock stable, internal clock enable. */
-#define CONTROL1_CLK_EN_BITS 0b111
 #define CONTROL1_INT_CLK_EN     0x1
 #define CONTROL1_INT_CLK_STABLE 0x2
 #define CONTROL1_CLK_EN         0x4
-/* SD clock frequency select shift. */
+/* SD clock frequency select and shift. */
+#define CONTROL1_CLK_FREQ_SEL 0xff00
 #define CONTROL1_CLK_FREQ_SEL_SHIFT 8
 /* Software reset host controller. */
 #define CONTROL1_SW_RESET_HC 0x1000000

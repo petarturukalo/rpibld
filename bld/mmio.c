@@ -1,12 +1,6 @@
 #include "mmio.h"
 #include "help.h"
 
-/*
- * Base address of main peripherals section in ARM low peripheral mode 
- * view of address map.
- */
-#define ARM_LO_MAIN_PERIPH_BASE_ADDR 0xfc000000
-
 static byte_t *get_peripheral_base_address(int peripheral_base_offset)
 {
 	return (byte_t *)(ARM_LO_MAIN_PERIPH_BASE_ADDR + peripheral_base_offset);
@@ -20,16 +14,6 @@ void register_set(struct periph_access *periph, int register_select, uint32_t va
 	// TODO figure out how to use memory barriers properly
 	__asm__("dmb");
 	*(uint32_t *)(periph_base_addr+reg_off) = value;
-	__asm__("dmb");
-}
-
-volatile void register_set_16bit(struct periph_access *periph, int register_select, uint16_t value)
-{
-	byte_t *periph_base_addr = get_peripheral_base_address(periph->periph_base_off);
-	int reg_off = periph->register_offsets[register_select];
-
-	__asm__("dmb");
-	*(uint16_t *)(periph_base_addr+reg_off) = value;
 	__asm__("dmb");
 }
 

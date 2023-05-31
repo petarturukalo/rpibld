@@ -6,7 +6,7 @@
 #ifndef IMG_H
 #define IMG_H
 
-#define IMG_MAGIC 0xba1fe12d
+#define IMG_MAGIC 0xF00BA12
 
 enum item_id {
 	ITEM_ID_END,
