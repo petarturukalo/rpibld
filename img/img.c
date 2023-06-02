@@ -16,8 +16,8 @@ void print_usage(void)
 	printf("Usage: 'imager <part> <kern> <dtb>' where <part> is the block\n"
 	       "device partition for a MBR primary partition, e.g. /dev/sdc2, and\n"
 	       "is where the remaining arguments will be stored. <kern> is the\n"
-	       "Linux kernel to boot, and <dtb> is the device tree blob that will\n"
-	       "be passed to the kernel.\n"
+	       "(compressed) Linux kernel zImage to boot, and <dtb> is the device\n"
+	       "tree blob that will be passed to the kernel.\n"
 	       "\n"
 	       "Use arg -h or --help to print this message again.\n");
 }
