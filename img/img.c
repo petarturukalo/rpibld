@@ -113,7 +113,7 @@ static int round_up_multiple(int n, int m)
 static struct image *image_append_item(struct image *img, enum item_id id, int itemsz, void *data)
 {
 	struct item *item;
-	/* Pad the item to ensure the it's aligned to SD_BLKSZ. */
+	/* Pad the item to ensure it's aligned to SD_BLKSZ. */
 	int itemsz_after_pad = round_up_multiple(sizeof(struct item)+itemsz, SD_BLKSZ)
 			       - sizeof(struct item);
 
