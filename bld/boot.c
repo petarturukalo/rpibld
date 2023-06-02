@@ -13,9 +13,45 @@
 
 /* Addresses in RAM that the kernel / device tree blob are loaded to. */
 /* 32 MiB. */
-#define KERN_RAM_ADDR 33554432
+#define KERN_RAM_ADDR 0x2000000
 /* 128 MiB. */
-#define DTB_RAM_ADDR 134217728
+#define DTB_RAM_ADDR 0x8000000
+/*
+ * The following diagram illustrates how the RAM is sectioned
+ * for use by the bootloader. Sections are delimited by borders:
+ * a hyphenated border (----) marks a hard border where a section
+ * stops, and a dotted border (....) marks a soft border where a
+ * section can grow into (i.e. it has a variable or unknown size).
+ *
+ *         +------------+
+ *         |            |
+ *         |            |
+ *         |............|
+ *         |    heap    |
+ * 256 MiB +------------+
+ *         |            |
+ *         |            |
+ *         |............|
+ *         |    dtb     |
+ * 128 MiB +------------+
+ *         |            |
+ *         |            |
+ *         |............|
+ *         |   kernel   |
+ *  32 MiB +------------+
+ *         |            |
+ *  31 MiB +------------+
+ *         | irq stack  |
+ *  30 MiB +------------+
+ *         | svc stack  |
+ *         |............|
+ *         |            |
+ *         |............|
+ *         | bootloader |
+ *  32 KiB +------------+
+ *         |            |
+ *         +------------+
+ */
 
 /*
  * Load an image item from the SD card into RAM.

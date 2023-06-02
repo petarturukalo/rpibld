@@ -13,14 +13,11 @@
 
 /*
  * The addresses that the IRQ and supervisor (SVC) mode stacks start at.
- * Because the stacks grow downwards they are set to reasonably high addresses to 
- * avoid running into this program (this program is loaded to address 0x8000), and 
- * to separate addresses to avoid running into each other. They are also 4-byte
- * aligned as they won't work if not 4-byte aligned.
- * TODO set stacks lower; give the amount of stack space a typical program has?
+ * Each has 1 MiB of stack space. They are 4-byte aligned as they won't 
+ * work if not 4-byte aligned.
  */
-.equ IRQ_STACK_START_ADDR, 0x07000000  /* ~117 MB. */
-.equ SVC_STACK_START_ADDR, 0x10000000  /* ~268 MB. */
+.equ IRQ_STACK_START_ADDR, 0x1f00000  /* 31 MiB. */
+.equ SVC_STACK_START_ADDR, 0x1e00000  /* 30 MiB. */
 
 /* The first 5 bits of the CPSR register, bits 4:0, make up the mode field. */
 .equ CPSR_MODE_BITS, 0b11111
