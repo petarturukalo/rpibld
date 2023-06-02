@@ -126,8 +126,6 @@ void c_entry(void)
 	item_lba = img_part_lba+1;
 	item = load_item(ITEM_ID_KERNEL, (byte_t *)(KERN_RAM_ADDR-sizeof(struct item)), 
 			 (void *)item_lba);
-	// TODO stack is lower than DTB addr so should be using that instead of DTB addr,
-	// unless stack addr gets changed
 	if (KERN_RAM_ADDR+item->itemsz >= DTB_RAM_ADDR)
 		signal_error(ERROR_KERN_OVERFLOW);
 	item_lba += bytes_to_blocks(item->itemsz);
