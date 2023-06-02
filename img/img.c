@@ -9,7 +9,6 @@
 #include <stdint.h>
 #include "img.h"
 
-/* Read/write size. */
 #define RDWR_SZ 4096
 
 void print_usage(void)
@@ -95,6 +94,15 @@ file_read_cleanup0:
 }
 
 /*
+ * Round a number n up to the nearest multiple of m.
+ * If n is already a multiple of m it is not rounded up.
+ */
+static int round_up_multiple(int n, int m)
+{
+	return n%m ? n+(m-(n%m)) : n;
+}
+
+/*
  * Append an item to the image.
  *
  * @img: dynamically allocated address of image
@@ -105,8 +113,15 @@ file_read_cleanup0:
 static struct image *image_append_item(struct image *img, enum item_id id, int itemsz, void *data)
 {
 	struct item *item;
+	/* Pad the item to ensure the it's aligned to SD_BLKSZ. */
+	int itemsz_after_pad = round_up_multiple(sizeof(struct item)+itemsz, SD_BLKSZ)
+			       - sizeof(struct item);
 
-	img = realloc(img, img->imgsz+(sizeof(struct item)+itemsz));
+	// TODO rm
+	printf("item %d starts at %d and has sz %d+%d\n", id, img->imgsz, sizeof(struct item),
+	       itemsz_after_pad);
+
+	img = realloc(img, img->imgsz+(sizeof(struct item)+itemsz_after_pad));
 	if (!img) {
 		fprintf(stderr, "Error allocating memory: %s\n", strerror(errno));
 		return NULL;
@@ -114,12 +129,12 @@ static struct image *image_append_item(struct image *img, enum item_id id, int i
 	/* Create a new item at the current end of the image. */
 	item = (struct item *)((char *)img+img->imgsz);
 	item->id = id;
-	item->itemsz = itemsz;
+	item->itemsz = itemsz_after_pad;
 	if (itemsz) 
 		memcpy(&item->data, data, itemsz);
 
 	/* Update end of image to include new item. */
-	img->imgsz += sizeof(struct item)+itemsz;
+	img->imgsz += sizeof(struct item)+itemsz_after_pad;
 
 	return img;
 }

@@ -32,3 +32,8 @@ bool mcmp(void *mem1, void *mem2, int n)
 	}
 	return true;
 }
+
+bool address_aligned(void *addr, int n)
+{
+	return !((int)addr%n);
+}

@@ -32,4 +32,9 @@ void mcopy(void *src, void *dest, int n);
  */
 bool mcmp(void *mem1, void *mem2, int n);
 
+/*
+ * Get whether an address is n-byte aligned.
+ */
+bool address_aligned(void *addr, int n);
+
 #endif

@@ -155,7 +155,7 @@ enum cmd_error sd_issue_acmd6(int rca, bool four_bit);
  * Read a single block (CMD17) or multiple blocks (CMD18) of size READ_BLKSZ 
  * from the SD card into RAM.
  *
- * @ram_dest_addr: destination address in RAM to copy read data to
+ * @ram_dest_addr: 4-byte aligned destination address in RAM to copy read data to
  * @sd_src_addr: source SD card address to read data from. If the card
  *	is SDSC this should be a byte unit address. If the card is SDHC 
  *	or SDXC	this should be a block unit address (LBA).

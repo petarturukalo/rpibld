@@ -26,7 +26,7 @@ enum sd_init_error sd_init(void);
 /*
  * Read one or more blocks of size READ_BLKSZ from the SD card into RAM.
  *
- * @ram_dest_addr: destination address in RAM to copy read data to
+ * @ram_dest_addr: 4-byte aligned destination address in RAM to copy read data to
  * @sd_src_lba: source SD card logical block address to read data from (blocks
  *	are of size READ_BLKSZ)
  * @nblks: number of blocks to read
@@ -38,5 +38,12 @@ bool sd_read_blocks(byte_t *ram_dest_addr, void *sd_src_lba, int nblks);
  * Read a number of bytes from the SD card into RAM.
  */
 bool sd_read_bytes(byte_t *ram_dest_addr, void *sd_src_lba, int bytes);
+
+/*
+ * Get the number of blocks required to read a number of bytes.
+ * If the number of bytes isn't a multiple of READ_BLKSZ the last block
+ * will have unused bytes.
+ */
+int bytes_to_blocks(int bytes);
 
 #endif 

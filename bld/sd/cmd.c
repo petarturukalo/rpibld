@@ -445,29 +445,27 @@ enum cmd_error sd_issue_read_cmd(enum cmd_index idx, byte_t *ram_dest_addr, void
 	 * This is written in assembly for the performance improvement.
 	 * Here the non-scratch registers starting at r4 counting upwards
 	 * are used.
+	 * TODO if use more inline asm that uses registers then move this comment about 
+	 *	non-scratch registers elsewhere?
 	 * Register r4 stores the SD DATA register address and is calculated from
 	 * ARM_LO_MAIN_PERIPH_BASE_ADDR + sd_access.periph_base_off + DATA. 
 	 * Peripheral access functions such as register_get() are avoided here
 	 * for performance reasons.
 	 */
-	__asm__("ldr r4, =0xfe340020\n\t"
+	__asm__("push {r4-r7}\n\t"
+		"ldr r4, =0xfe340020\n\t"
 		"mov r5, %0"
 		: 
 		: "r" (ram_dest_addr));
-	/* 
-	 * TODO this is too slow. took ~40 seconds to read ~13K blks = 7 MB. 
-	 * better now and down to ~3.7 seconds, but can still be improved.
-	 * - double check clock speed, bus width, etc., and expected MB/s transfer rates
-	 * - try enabling data cache so writes go to cache instead of RAM
-	 */
 	while (nblks--) {
 		error = sd_wait_for_interrupt(INTERRUPT_READ_READY);
-		if (error != CMD_ERROR_NONE)
-			return error;
+		if (error != CMD_ERROR_NONE) 
+			goto sd_issue_read_cmd_cleanup;
 		/* Copy read block from host buffer to RAM. */
-		// TODO don't need barriers on the access because only mixing access
-		// with INTERRUPT reg that will have barriers used? 
-		// TODO assert ram_dest_addr is 4-byte aligned
+		// TODO either put in barriers or document why it's not used.
+		// assumption: don't need barriers on access because only mixing
+		// access with INTERRUPT reg that will have barriers used in the 
+		// register_get() and friends fns
 		__asm__("mov r6, %0\n\t"
 			"read_data:\n\t"
 			"ldr r7, [r4]\n\t"
@@ -478,7 +476,10 @@ enum cmd_error sd_issue_read_cmd(enum cmd_index idx, byte_t *ram_dest_addr, void
 			:
 			: "r" (READ_BLKSZ));
 	}
-	return sd_wait_for_interrupt(INTERRUPT_TRANSFER_COMPLETE);
+	error = sd_wait_for_interrupt(INTERRUPT_TRANSFER_COMPLETE);
+sd_issue_read_cmd_cleanup:
+	__asm__("pop {r4-r7}");
+	return error;
 }
 
 enum cmd_error sd_issue_cmd17(byte_t *ram_dest_addr, void *sd_src_addr)

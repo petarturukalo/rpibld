@@ -356,8 +356,6 @@ enum sd_init_error sd_init_card(struct card *card_out)
 	 * to 0x0 on boot, default speed can be assumed - change the clock to 25 MHz for 
 	 * default speed.
 	 */
-	// TODO confirm new clock gets set up correctly by comparing 1-bit vs 4-bit read speeds
-	// TODO try a higher clock rate to check whether base is actually 100 MHz
 	sd_supply_clock(DEFAULT_SPEED_CLOCK_RATE_HZ);
 
 	/* Put card in transfer state. */
@@ -392,10 +390,12 @@ bool sd_read_blocks_card(byte_t *ram_dest_addr, void *sd_src_lba, int nblks,
 	struct blksizecnt blkszcnt;
 	enum cmd_error error = CMD_ERROR_NONE;
 
+	if (!address_aligned(ram_dest_addr, 4))
+		return false;
 	/* Convert LBA / block unit address to byte unit address for SDSC. */
-	if (!card->sdhc_or_sdxc) {
+	if (!card->sdhc_or_sdxc) 
 		sd_src_lba = (void *)((int)sd_src_lba*READ_BLKSZ);
-	}
+	
 	/* Set block size and count. */
 	mzero(&blkszcnt, sizeof(blkszcnt));
 	blkszcnt.blksize = READ_BLKSZ;
@@ -425,12 +425,7 @@ bool sd_read_blocks(byte_t *ram_dest_addr, void *sd_src_lba, int nblks)
 	return sd_read_blocks_card(ram_dest_addr, sd_src_lba, nblks, &card);
 }
 
-/*
- * Get the number of blocks required to read a number of bytes.
- * If the number of bytes isn't a multiple of READ_BLKSZ the last block
- * will have unused bytes.
- */
-static int bytes_to_blocks(int bytes)
+int bytes_to_blocks(int bytes)
 {
 	int nblks = bytes/READ_BLKSZ;
 	if (bytes%READ_BLKSZ)

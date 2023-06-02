@@ -1,5 +1,4 @@
 #include "int.h"
-#include "gic.h"
 #include "ic.h"
 #include "error.h"
 #include "mbr.h"
@@ -12,22 +11,49 @@
 #include "heap.h" // TODO rm
 #include "help.h" // TODO rm
 
+/* Addresses in RAM that the kernel / device tree blob are loaded to. */
+/* 32 MiB. */
+#define KERN_RAM_ADDR 33554432
+/* 128 MiB. */
+#define DTB_RAM_ADDR 134217728
+
+/*
+ * Load an image item from the SD card into RAM.
+ */
+static struct item *load_item(enum item_id id, byte_t *ram_item_dest_addr, 
+			      void *sd_item_src_lba)
+{
+	struct item *item;
+
+	/* Read first block of item to get its size. */
+	if (!sd_read_blocks(ram_item_dest_addr, sd_item_src_lba, 1))
+		signal_error(ERROR_SD_READ);
+	item = (struct item *)ram_item_dest_addr;
+	if (item->id != id) 
+		signal_error(ERROR_IMAGE_CONTENTS);
+	/* Read rest of item. */
+	if (item->itemsz > SD_BLKSZ) {
+		if (!sd_read_bytes(ram_item_dest_addr, sd_item_src_lba, item->itemsz))
+			signal_error(ERROR_SD_READ);
+	}
+	return item;
+}
+
 /*
  * Entry point to the C code, the function branched to when switching from 
  * the assembly init code to C.
  */
 void c_entry(void)
 {
+	// TODO break down the fn into parts?
 	enum sd_init_error error;
 	byte_t *mbr_base_addr;
-	uint32_t part_lba;
-	uint32_t part_nblks;
+	uint32_t img_part_lba, item_lba;
+	uint32_t img_part_nblks;
 	struct image *img;
 	struct item *item;
-	uint32_t id;// TODO rm after
 
 	enable_interrupts();
-	/*gic_init();*/
 	ic_enable_interrupts();
 
 	error = sd_init();
@@ -42,44 +68,41 @@ void c_entry(void)
 	if (!mbr_partition_valid(IMAGE_PARTITION))
 		signal_error(ERROR_INVALID_PARTITION);
 
-	part_lba = mbr_get_partition_lba(mbr_base_addr, IMAGE_PARTITION);
-	part_nblks = mbr_get_partition_nblks(mbr_base_addr, IMAGE_PARTITION);
+	img_part_lba = mbr_get_partition_lba(mbr_base_addr, IMAGE_PARTITION);
+	img_part_nblks = mbr_get_partition_nblks(mbr_base_addr, IMAGE_PARTITION);
 
 	/* Got all the data needed from MBR so safe to overwrite it in heap. */
 	img = heap_get_base_address();
-	/* Read first block of image from image partition. */
-	if (!sd_read_blocks((byte_t *)img, (void *)part_lba, 1))
-		/* TODO if always do a signal_error(ERROR_SD_READ) then put it in sd_read() instead? */
+	/* Read first block of image from image partition into RAM. */
+	if (!sd_read_blocks((byte_t *)img, (void *)img_part_lba, 1))
 		signal_error(ERROR_SD_READ);
 	if (img->magic != IMG_MAGIC)
 		signal_error(ERROR_NO_IMAGE_MAGIC);
-	if (img->imgsz > part_nblks*READ_BLKSZ)
+	if (img->imgsz > img_part_nblks*SD_BLKSZ)
 		signal_error(ERROR_IMAGE_OVERFLOW);
 
-	/* Read whole of image from image partition. */
-	if (!sd_read_bytes((byte_t *)img, (void *)part_lba, img->imgsz))
-		signal_error(ERROR_SD_READ);
-	/* Validate image contents. TODO mv this later */
-	item = img->items;
-	id = ITEM_ID_KERNEL;
-	/* TODO using mcmp() to avoid memory alignment issues. */
-	if (!mcmp(&item->id, &id, sizeof(uint32_t)))
-		signal_error(ERROR_IMAGE_CONTENTS);
-	item = (struct item *)((byte_t *)&item->data + item->itemsz);
-	id = ITEM_ID_DEVICE_TREE_BLOB;
-	if (!mcmp(&item->id, &id, sizeof(uint32_t)))
-		signal_error(ERROR_IMAGE_CONTENTS);
-	item = (struct item *)((byte_t *)&item->data + item->itemsz);
-	id = ITEM_ID_END;
-	if (!mcmp(&item->id, &id, sizeof(uint32_t)))
-		signal_error(ERROR_IMAGE_CONTENTS);
-
 	/* 
-	 * TODO cont at 'Booting ARM Linux'
-	 * - since using device tree don't need to set up the kernel tagged list?
-	 * - kernel decompresses itself, don't have to do that in the bootloader?
+	 * Load kernel and device tree blob from SD image into RAM. 
+	 *
+	 * Below the size of the item not including its data is subtracted from the RAM 
+	 * address so that the start of the item's data is loaded to the RAM address.
 	 */
+	item_lba = img_part_lba+1;
+	item = load_item(ITEM_ID_KERNEL, (byte_t *)(KERN_RAM_ADDR-sizeof(struct item)), 
+			 (void *)item_lba);
+	// TODO stack is lower than DTB addr so should be using that instead of DTB addr,
+	// unless stack addr gets changed
+	if (KERN_RAM_ADDR+item->itemsz >= DTB_RAM_ADDR)
+		signal_error(ERROR_KERN_OVERFLOW);
+	item_lba += bytes_to_blocks(item->itemsz);
+	item = load_item(ITEM_ID_DEVICE_TREE_BLOB, (byte_t *)(DTB_RAM_ADDR-sizeof(struct item)), 
+			 (void *)item_lba);
+	item_lba += bytes_to_blocks(item->itemsz);
+	/* Validate that the terminating item is there. */
+	item = load_item(ITEM_ID_END, heap_get_base_address(), (void *)item_lba);
 
-	signal_error(10);
-	__asm("wfi");
+
+
+	signal_error(11);
+	__asm__("wfi");
 }
