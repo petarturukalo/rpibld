@@ -117,10 +117,6 @@ static struct image *image_append_item(struct image *img, enum item_id id, int i
 	int itemsz_after_pad = round_up_multiple(sizeof(struct item)+itemsz, SD_BLKSZ)
 			       - sizeof(struct item);
 
-	// TODO rm
-	printf("item %d starts at %d and has sz %d+%d\n", id, img->imgsz, sizeof(struct item),
-	       itemsz_after_pad);
-
 	img = realloc(img, img->imgsz+(sizeof(struct item)+itemsz_after_pad));
 	if (!img) {
 		fprintf(stderr, "Error allocating memory: %s\n", strerror(errno));
