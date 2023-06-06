@@ -37,4 +37,21 @@ bool mcmp(void *mem1, void *mem2, int n);
  */
 bool address_aligned(void *addr, int n);
 
+/*
+ * Swap the bytes of a 32-bit value that was stored
+ * in big-endian format on secondary storage to recover
+ * its actual value.
+ */
+uint32_t bswap32(uint32_t value);
+
+/*
+ * Loop waiting for a condition to become false. Timeout and 
+ * signal ERROR_INFINITE_LOOP after waiting timeout_ms. 
+ * This at least lets the user know that an infinite loop could
+ * have happened, opposed to getting stuck in an infinite loop
+ * and the user not knowing whether it's an infinite loop or
+ * another issue.
+ */
+void while_cond_timeout_infinite(bool (*condition)(void), int timeout_ms);
+
 #endif

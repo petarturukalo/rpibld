@@ -15,7 +15,7 @@
 /* 32 MiB. */
 #define KERN_RAM_ADDR 0x2000000
 /* 128 MiB. */
-#define DTB_RAM_ADDR 0x8000000
+#define DTB_RAM_ADDR  0x8000000
 /*
  * The following diagram illustrates how the RAM is sectioned
  * for use by the bootloader. Sections are delimited by borders:
@@ -52,6 +52,11 @@
  *         |            |
  *         +------------+
  */
+
+#define DTB_MAGIC 0xd00dfeed
+/* Kernel zImage magic number and offset to it from start of the zImage. */
+#define ZIMAGE_MAGIC 0x016F2818
+#define ZIMAGE_MAGIC_OFF 0x24
 
 /*
  * Load an image item from the SD card into RAM.
@@ -128,15 +133,59 @@ void c_entry(void)
 			 (void *)item_lba);
 	if (KERN_RAM_ADDR+item->itemsz >= DTB_RAM_ADDR)
 		signal_error(ERROR_KERN_OVERFLOW);
+	if (*(uint32_t *)(KERN_RAM_ADDR+ZIMAGE_MAGIC_OFF) != ZIMAGE_MAGIC)
+		signal_error(ERROR_IMAGE_CONTENTS);
 	item_lba += bytes_to_blocks(item->itemsz);
 	item = load_item(ITEM_ID_DEVICE_TREE_BLOB, (byte_t *)(DTB_RAM_ADDR-sizeof(struct item)), 
 			 (void *)item_lba);
+	if (bswap32(*(uint32_t *)DTB_RAM_ADDR) != DTB_MAGIC)
+		signal_error(ERROR_IMAGE_CONTENTS);
 	item_lba += bytes_to_blocks(item->itemsz);
 	/* Validate that the terminating item is there. */
 	item = load_item(ITEM_ID_END, heap_get_base_address(), (void *)item_lba);
 
+	/* Reset CPU and peripherals to the state required to boot the kernel. */
+	// TODO test which of below is actually needed
+	if (!sd_reset())
+		signal_error(ERROR_SD_RESET);
+	ic_disable_interrupts();
+	disable_interrupts();
+	// TODO move back to hypervisor?
 
+	/* 
+	 * Load addresses into non-scratch registers r4, r5 before using 
+	 * scratch registers r1, r2, r3 because compilation overwrites 
+	 * the scratch registers when loading the addresses, e.g. instruction
+	 *
+	 * "mov r4, %0"
+	 *
+	 * becomes
+	 *
+	 * "mov r3, <immediate>"
+	 * "mov r4, r3"
+	 *
+	 * after compilation, where <immediate> is the value substituted into %0.
+	 */
+	// TODO hvc jumps to exception vector so can't see LED?
+	/*__asm__("hvc #0\n\t" */
+	__asm__("mov r4, %0\n\t"  /* Store device tree blob in r4. */
+		"mov r5, %1\n\t"  /* Store kernel in r5. */
+		/* Set the values of registers r0, r1, r2 required to boot the kernel. */
+		"mov r0, #0\n\t"
+		/* 
+		 * r1 is machine type and is set to ~0 (all 1s) to not match a 
+		 * machine because it's determined by the device tree instead.
+		 */
+		"mvn r1, #0\n\t"
+		/* Set r2 to address of device tree blob. */
+		"mov r2, r4\n\t"
+		/* Jump to kernel. */
+		"bx r5"
+		:
+		: "r" (DTB_RAM_ADDR), "r" (KERN_RAM_ADDR));
 
-	signal_error(11);
+	// NOTE disabled interrupts so signal_error() won't work
+	// TODO rm
+	signal_error(12);
 	__asm__("wfi");
 }

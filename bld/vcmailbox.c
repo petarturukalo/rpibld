@@ -81,6 +81,11 @@ enum channel {
  */
 #define CHANNEL_BITS 0b1111
 
+static bool mbox1_status_full_flag_set(void)
+{
+	return register_get(&vcmailbox_access, MBOX1_STATUS)&1<<31;
+}
+
 /*
  * Write/send a message to the VideoCore.
  * @data: data in which the message encapsulates. The meaning of this is dependent
@@ -93,9 +98,13 @@ static void vcmailbox_write_message(uint32_t data, enum channel chan)
 	 * Wait for full flag to clear (which after testing doesn't seem like is
 	 * necessary, but do it anyway just in case). 
 	 */
-	while (register_get(&vcmailbox_access, MBOX1_STATUS)&1<<31)
-		;
+	while_cond_timeout_infinite(mbox1_status_full_flag_set, 200);
 	register_set(&vcmailbox_access, MBOX1_WRITE, (data&(~CHANNEL_BITS))|chan);
+}
+
+static bool mbox0_status_empty_flag_set(void)
+{
+	return register_get(&vcmailbox_access, MBOX0_STATUS)&1<<30;
 }
 
 /*
@@ -108,9 +117,8 @@ static uint32_t vcmailbox_read_message(void)
 	/* 
 	 * Wait for empty flag to clear (opposed to waiting for an interrupt; this is 
 	 * necessary compared to the wait done in vcmailbox_write_message()). 
-	 * */
-	while (register_get(&vcmailbox_access, MBOX0_STATUS)&1<<30)
-		;
+	 */
+	while_cond_timeout_infinite(mbox0_status_empty_flag_set, 200);
 	return register_get(&vcmailbox_access, MBOX0_READ);
 }
 

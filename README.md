@@ -26,6 +26,11 @@ it is done because the first three bootloader stages are run on the VideoCore/VP
 while the loaded "kernel" is run on the ARM CPU, and there is far more official 
 documentation available for the ARM CPU than the VPU.
 
+For more info see the following links.
+* https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#raspberry-pi-4-boot-flow
+* https://www.raspberrypi.com/documentation/computers/configuration.html#start-elf-start_x-elf-start_db-elf-start_cd-elf-start4-elf-start4x-elf-start4db-elf-start4cd-elf
+* https://www.raspberrypi.com/documentation/computers/configuration.html#kernel-files
+
 
 # Usage
 
@@ -35,10 +40,14 @@ The imager is used to image a partition. The imaged partition is called the "ima
 here, and is where the bootloader looks for the OS (and its data) to load. The image partition
 can be created with `fdisk`, and shall be a MBR primary partition large enough to store the OS
 files. The image partition does not need to be formatted with a file system, as the image is 
-just stored as raw bytes at the start of the partition.
+stored as raw bytes at the start of the partition.
 
 Compile the imager with `make imager`. Run it with help arguments `-h` or `--help` to
 see how to use it to image a partition.
+
+TODO mention where to fin default files to make image out of. also mention default provided
+dtb assumes root file system is on 2nd partition in its boot args. mention which raspbian
+pulled them from 
 
 ## Bootloader
 
@@ -107,9 +116,11 @@ the physical layer specification which the SD peripheral implements
 TODO ADD THIS TO THE ARM CPU SECTION: AAPCS arm procedure call standard https://github.com/ARM-software/abi-aa/blob/844a79fd4c77252a11342709e3b27b2c9f590cf1/aapcs32/aapcs32.rst - helpful to know which registers are safe to use when writing assembly that will be mixed with compiled C
 
 TODO
-- put in links/references for Bootloader Stages section?
 - as find and use more resources add them to resources section
 - mention minimum /boot partition files like config.txt needed 
 	(see uncommitted boot-part dir; provide committed default files)
 - mention only works with sd not usb
 - add "booting ARM linux" instructions to resources? (after find it's needed)
+https://www.kernel.org/doc/html/latest/arm/booting.html
+http://www.simtec.co.uk/products/SWLINUX/files/booting_article.html#d0e309
+- add troubleshooting section on selecting a cmdline?

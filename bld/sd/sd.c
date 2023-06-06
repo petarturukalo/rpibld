@@ -122,6 +122,11 @@ static void sd_assert_vc_init(void)
 	sd_assert_card_power();
 }
 
+static bool sd_sw_reset_hc_bit_set(void)
+{
+	return register_get(&sd_access, CONTROL1)&CONTROL1_SW_RESET_HC;
+}
+
 /*
  * Reset the entire host controller. Clears register bits, so needs to be
  * called before any other initialisation. 
@@ -131,8 +136,7 @@ static void sd_assert_vc_init(void)
 static void sd_reset_host(void)
 {
 	register_enable_bits(&sd_access, CONTROL1, CONTROL1_SW_RESET_HC);
-	while (register_get(&sd_access, CONTROL1)&CONTROL1_SW_RESET_HC)
-		;
+	while_cond_timeout_infinite(sd_sw_reset_hc_bit_set, 20);
 }
 
 /*
@@ -168,6 +172,11 @@ static int sd_8bit_clock_divider(int base_rate, int target_rate)
 	return divisor >>= 1;
 }
 
+static bool sd_internal_clock_not_stable(void)
+{
+	return !(register_get(&sd_access, CONTROL1)&CONTROL1_INT_CLK_STABLE);
+}
+
 /*
  * Supply the clock at the given clock rate (in Hz) to the card.
  */
@@ -195,8 +204,7 @@ static void sd_supply_clock(int clock_rate)
 	 * Wait for internal clock to become stable. From testing this only takes 
 	 * around 5 iterations, so don't bother sleeping. 
 	 */
-	while (!(register_get(&sd_access, CONTROL1)&CONTROL1_INT_CLK_STABLE)) 
-		;
+	while_cond_timeout_infinite(sd_internal_clock_not_stable, 20);
 	/* Enable clock. */
 	register_enable_bits(&sd_access, CONTROL1, CONTROL1_CLK_EN);
 }
@@ -437,4 +445,25 @@ bool sd_read_bytes(byte_t *ram_dest_addr, void *sd_src_lba, int bytes)
 {
 	int nblks = bytes_to_blocks(bytes);
 	return sd_read_blocks(ram_dest_addr, sd_src_lba, nblks);
+}
+
+static bool sd_reset_card(struct card *card)
+{
+	enum cmd_error error;
+
+	/* Reset card. */
+	// TODO need to worry about resetting interrupts or anything like that?
+	error = sd_issue_cmd(CMD_IDX_GO_IDLE_STATE, 0);
+	if (error != CMD_ERROR_NONE) 
+		return false;;
+
+	card->state = CARD_STATE_IDLE;
+
+	sd_reset_host();
+	return true;
+}
+
+bool sd_reset(void)
+{
+	return sd_reset_card(&card);
 }

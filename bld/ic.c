@@ -23,6 +23,8 @@ enum armc_register {
 	IRQ0_SET_EN_0,
 	IRQ0_SET_EN_1,
 	IRQ0_SET_EN_2,
+	IRQ0_CLR_EN_0,
+	IRQ0_CLR_EN_1,
 	SWIRQ_SET
 };
 
@@ -35,11 +37,12 @@ static struct periph_access armc_access = {
 		[IRQ0_SET_EN_0] = 0x210,
 		[IRQ0_SET_EN_1] = 0x214,
 		[IRQ0_SET_EN_2] = 0x218,
+		[IRQ0_CLR_EN_0] = 0x220,
+		[IRQ0_CLR_EN_1] = 0x224,
 		[SWIRQ_SET]     = 0x3f0
 	}
 };
 
-// TODO have the peripheral register its interrupt in its init code? maybe not
 void ic_enable_interrupts(void)
 {
 /* Enable VideoCore interrupts: */
@@ -47,6 +50,13 @@ void ic_enable_interrupts(void)
 	register_set(&armc_access, IRQ0_SET_EN_0, 1<<1);
 	/* Enable SD/MMC. */
 	register_set(&armc_access, IRQ0_SET_EN_1, 1<<30);
+}
+
+void ic_disable_interrupts(void)
+{
+	// TODO name duplicated shifts?
+	register_set(&armc_access, IRQ0_CLR_EN_0, 1<<1);
+	register_set(&armc_access, IRQ0_CLR_EN_1, 1<<30);
 }
 
 static enum irq get_irq_source(void)

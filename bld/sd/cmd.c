@@ -437,26 +437,28 @@ enum cmd_error sd_issue_acmd6(int rca, bool four_bit)
 enum cmd_error sd_issue_read_cmd(enum cmd_index idx, byte_t *ram_dest_addr, void *sd_src_addr, int nblks)
 {
 	enum cmd_error error;
+	/* 
+	 * Address of the SD DATA register in RAM. Peripheral access functions 
+	 * such as register_get() are avoided for performance reasons.
+	 */
+	byte_t *sd_data_addr = (byte_t *)(ARM_LO_MAIN_PERIPH_BASE_ADDR
+					  + sd_access.periph_base_off
+					  + sd_access.register_offsets[DATA]);
 
 	error = sd_issue_cmd(idx, (uint32_t)sd_src_addr);
 	if (error != CMD_ERROR_NONE)
 		return error;
 	/*
-	 * This is written in assembly for the performance improvement.
-	 * Here the non-scratch registers starting at r4 counting upwards
-	 * are used.
-	 * TODO if use more inline asm that uses registers then move this comment about 
-	 *	non-scratch registers elsewhere?
-	 * Register r4 stores the SD DATA register address and is calculated from
-	 * ARM_LO_MAIN_PERIPH_BASE_ADDR + sd_access.periph_base_off + DATA. 
-	 * Peripheral access functions such as register_get() are avoided here
-	 * for performance reasons.
+	 * Parts of this function are written in assembly for the performance 
+	 * improvement. Here the non-scratch registers starting at r4 and 
+	 * upwards are used.
 	 */
 	__asm__("push {r4-r7}\n\t"
-		"ldr r4, =0xfe340020\n\t"
-		"mov r5, %0"
+		"mov r4, %0\n\t"
+		"mov r5, %1"
 		: 
-		: "r" (ram_dest_addr));
+		: "r" (sd_data_addr), "r" (ram_dest_addr));
+
 	while (nblks--) {
 		error = sd_wait_for_interrupt(INTERRUPT_READ_READY);
 		if (error != CMD_ERROR_NONE) 

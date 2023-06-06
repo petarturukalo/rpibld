@@ -1,4 +1,6 @@
 #include "help.h"
+#include "timer.h"
+#include "error.h"
 
 int max(int n, int m)
 {
@@ -36,4 +38,24 @@ bool mcmp(void *mem1, void *mem2, int n)
 bool address_aligned(void *addr, int n)
 {
 	return !((int)addr%n);
+}
+
+uint32_t bswap32(uint32_t value)
+{
+	/* Reverse the order of the bytes. */
+	return (value&0x000000ff)<<24 |
+	       (value&0x0000ff00)<<8 |
+	       (value&0x00ff0000)>>8 |
+	       (value&0xff000000)>>24;
+}
+
+void while_cond_timeout_infinite(bool (*condition)(void), int timeout_ms)
+{
+	struct timestamp ts;
+	
+	timer_poll_start(timeout_ms, &ts);
+	while (condition()) {
+		if (timer_poll_done(&ts))
+			signal_error(ERROR_INFINITE_LOOP);
+	}
 }

@@ -11,9 +11,10 @@ linker_script=boot.ld
 libgcc_searchdir=/usr/lib/gcc/arm-none-eabi/12.2.0
 # The MBR primary partition that the imager imaged and that the
 # bootloader will load the OS from.
-image_partition=2
+image_partition=3
 # TODO -Werror=undef doing anything?
-CFLAGS=-nostdlib -r -march=armv7-a -Wunused-variable -Werror=undef -Iinclude \
+# TODO arch was armv7-a (why did i make it -a and not armv7? it's armv7-a in the web docs i'm referencing)
+CFLAGS=-nostdlib -r -march=armv7ve -Wunused-variable -Werror=undef -Iinclude \
 	-DIMAGE_PARTITION=$(image_partition)
        
 # Link with -lgcc to resolve undefined reference to __aeabi_idivmod, 

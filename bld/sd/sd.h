@@ -46,4 +46,10 @@ bool sd_read_bytes(byte_t *ram_dest_addr, void *sd_src_lba, int bytes);
  */
 int bytes_to_blocks(int bytes);
 
+/*
+ * Reset the SD card and host controller to its state at boot.
+ * TODO return
+ */
+bool sd_reset(void);
+
 #endif 

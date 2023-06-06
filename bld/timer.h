@@ -32,12 +32,13 @@ void sleep(int milliseconds);
 
 /*
  * Start a non-sleeping timer with timer_poll_start(). Whether the milliseconds amount of time argument
- * to timer_poll_start() has elapsed can be checked/polled with timer_poll_done(). 
- *
+ * to timer_poll_start() has elapsed can be checked/polled with timer_poll_done().
+ * 
  * WARNING the implementation of this only uses the lower 32-bits of the 64-bit free running counter.
  * Because the system timer clock is 1 MHz, it will take ~71 minutes for the lower 32 bits to go from 0
- * to its maximum and then restart back at 0. If an overflow timestamp is taken, which can happen when
- * the pi has been running for almost ~71 minutes, calls to timer_poll_done() will return a false positive
+ * to its maximum and then restart back at 0. If an overflow timestamp is taken (timestamp here is the 
+ * time at which the milliseconds amount of time argument initially passes), which can happen when the 
+ * pi has been running for almost ~71 minutes, calls to timer_poll_done() will return a false positive
  * until the lower 32-bits of the counter itself overflows. 
  * Conclusion: these functions are safe to use under the assumption that the low 32-bits are reset to 0 
  * at power on (the BCM2711 datasheet says they are), and that the pi hasn't been running for almost ~71 
