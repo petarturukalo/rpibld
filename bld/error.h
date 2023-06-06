@@ -5,7 +5,8 @@
  * @ERROR_VCMAILBOX: error using the VideoCore mailbox
  * @ERROR_VC_NOT_INIT_MMC: the VideoCore firmware didn't intialise
  *	MMC as expected (see mmc_assert_vc_init() for more info)
- * @ERROR_INFINITE_LOOP: timed out waiting for a loop condition TODO
+ * @ERROR_INFINITE_LOOP: timed out waiting for a condition. 
+ *	If didn't timeout likely would have gotten stuck in an infinite loop.
  * @ERROR_SD_INIT: failed to initialise the SD card with call to sd_init()
  * @ERROR_INVALID_PARTITION: the IMAGE_PARTITION macro defined in the makefile is
  *	not a valid MBR primary partition number
@@ -29,7 +30,7 @@ enum error_code {
 	ERROR_IMAGE_OVERFLOW    = 9,
 	ERROR_IMAGE_CONTENTS    = 10,
 	ERROR_KERN_OVERFLOW     = 11,
-	ERROR_SD_RESET          = 12,
+	ERROR_SD_RESET          = 12
 // TODO make a note that if it hangs and there's no LED signalling then could be a 
 // problem with the kernel/dtb after jumping to it
 };
