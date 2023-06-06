@@ -5,8 +5,7 @@
  * @ERROR_VCMAILBOX: error using the VideoCore mailbox
  * @ERROR_VC_NOT_INIT_MMC: the VideoCore firmware didn't intialise
  *	MMC as expected (see mmc_assert_vc_init() for more info)
- * @ERROR_INFINITE_LOOP: timed out waiting for a condition. 
- *	If didn't timeout likely would have gotten stuck in an infinite loop.
+ * @ERROR_INFINITE_LOOP: see while_cond_timeout_infinite()
  * @ERROR_SD_INIT: failed to initialise the SD card with call to sd_init()
  * @ERROR_INVALID_PARTITION: the IMAGE_PARTITION macro defined in the makefile is
  *	not a valid MBR primary partition number

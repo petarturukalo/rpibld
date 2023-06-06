@@ -47,10 +47,14 @@ uint32_t bswap32(uint32_t value);
 /*
  * Loop waiting for a condition to become false. Timeout and 
  * signal ERROR_INFINITE_LOOP after waiting timeout_ms. 
- * This at least lets the user know that an infinite loop could
- * have happened, opposed to getting stuck in an infinite loop
- * and the user not knowing whether it's an infinite loop or
- * another issue.
+ *
+ * This is typically used "just in case" for conditions dependent 
+ * on hardware that are expected to change, but might not (even if
+ * very unlikely).
+ *
+ * This way the user at least knows that an infinite could have happened,
+ * opposed to getting stuck in an infinite loop and the user not knowing 
+ * whether it's an infinite loop or another issue.
  */
 void while_cond_timeout_infinite(bool (*condition)(void), int timeout_ms);
 
