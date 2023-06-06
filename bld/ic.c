@@ -16,6 +16,11 @@ static struct periph_access arm_local_access = {
 	}
 };
 
+/* IRQ source register fields. */
+/* VideoCore interrupt request. */
+#define IRQ_SOURCE_CORE_IRQ 0x100
+
+
 enum armc_register {
 	IRQ0_PENDING0,
 	IRQ0_PENDING1,
@@ -43,20 +48,37 @@ static struct periph_access armc_access = {
 	}
 };
 
+/* IRQ[0-3] pending 2 register fields. */
+/* Interrupt is a VideoCore interrupt in range 31 to 0. */
+#define IRQ_PENDING2_INT31_0  0x1000000
+/* Interrupt is a VideoCore interrupt in range 63 to 32. */
+#define IRQ_PENDING2_INT63_32 0x2000000
+
+/* 
+ * Register fields for registers IRQ[0-3] set enable 0,
+ * clear enable 0, pending 0.
+ */
+#define IRQ_INT31_0_TIMER1 0x2
+/* 
+ * Register fields for registers IRQ[0-4] set enable 1,
+ * clear enable 1, pending 1.
+ */
+#define IRQ_INT63_32_EMMC2 0x40000000
+
+
 void ic_enable_interrupts(void)
 {
 /* Enable VideoCore interrupts: */
 	/* Enable system timer channel 1. */
-	register_set(&armc_access, IRQ0_SET_EN_0, 1<<1);
+	register_set(&armc_access, IRQ0_SET_EN_0, IRQ_INT31_0_TIMER1);
 	/* Enable SD/MMC. */
-	register_set(&armc_access, IRQ0_SET_EN_1, 1<<30);
+	register_set(&armc_access, IRQ0_SET_EN_1, IRQ_INT63_32_EMMC2);
 }
 
 void ic_disable_interrupts(void)
 {
-	// TODO name duplicated shifts?
-	register_set(&armc_access, IRQ0_CLR_EN_0, 1<<1);
-	register_set(&armc_access, IRQ0_CLR_EN_1, 1<<30);
+	register_set(&armc_access, IRQ0_CLR_EN_0, IRQ_INT31_0_TIMER1);
+	register_set(&armc_access, IRQ0_CLR_EN_1, IRQ_INT63_32_EMMC2);
 }
 
 static enum irq get_irq_source(void)
@@ -65,17 +87,14 @@ static enum irq get_irq_source(void)
 	 * Refer 'Figure 9. Legacy IRQ status registers' from section '6.4 Legacy 
 	 * interrupt controller' of the BCM2711 datasheet for the logic here.
 	 */
-	if (register_get(&arm_local_access, IRQ_SOURCE0)&1<<8) {
+	if (register_get(&arm_local_access, IRQ_SOURCE0)&IRQ_SOURCE_CORE_IRQ) {
 		uint32_t pending2 = register_get(&armc_access, IRQ0_PENDING2);
 
-		// TODO split this into handling ARMC interrupts in PENDING 2 and
-		// VC interrupts in PENDING0/1
-		if (pending2&1<<24) {
-			if (register_get(&armc_access, IRQ0_PENDING0)&1<<1) 
+		if (pending2&IRQ_PENDING2_INT31_0) {
+			if (register_get(&armc_access, IRQ0_PENDING0)&IRQ_INT31_0_TIMER1) 
 				return IRQ_VC_TIMER1;
-		} else if (pending2&1<<25) {
-			// TODO name these shifts duplicated here and in ic_enable_interrupts()
-			if (register_get(&armc_access, IRQ0_PENDING1)&1<<30) 
+		} else if (pending2&IRQ_PENDING2_INT63_32) {
+			if (register_get(&armc_access, IRQ0_PENDING1)&IRQ_INT63_32_EMMC2) 
 				return IRQ_VC_EMMC2;
 		}
 	}
