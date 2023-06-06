@@ -6,25 +6,6 @@
 
 #include "type.h"
 
-// TODO mv back to .c
-/* The ARM CPU is little endian, otherwise this would be 0x55aa. */
-#define MBR_MAGIC 0xaa55
-
-/* MBR offsets to fields and sizes of fields. */
-#define MBR_MAGIC_OFF 0x01fe
-/* First primary partition entry of four. */
-#define MBR_PART_ENTRIES_OFF 0x01be
-
-/* First and last primary partition numbers. */
-#define MBR_FIRST_PART_NR 1
-#define MBR_LAST_PART_NR  4
-
-#define PART_ENTRY_SZ 16
-/* Partition entry offsets to fields and sizes of fields. */
-#define PART_ENTRY_LBA_OFF     0x08
-#define PART_ENTRY_NBLOCKS_OFF 0x0c
-
-
 /*
  * Get whether a MBR has the magic / boot signature
  * at its end.
