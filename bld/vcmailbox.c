@@ -20,6 +20,12 @@ static struct periph_access vcmailbox_access = {
 	}
 };
 
+/* Mailbox 1 status register fields. */
+#define MBOX1_STATUS_FULL  0x80000000
+/* Mailbox 0 status register fields. */
+#define MBOX0_STATUS_EMPTY 0x40000000
+
+
 /*
  * Used to request and receive properties associated with a particular tag
  * from the VideoCore.
@@ -47,6 +53,9 @@ struct tag {
 /* Needs to be 32-bit aligned. */
 } __attribute__((aligned(4)));
 
+/* See bit 31 of tag.response_code documentation above. */
+#define TAG_RESPONSE_CODE_RESPONSE 0x80000000
+
 /*
  * Buffer used to request/receive properties from the VideoCore. 
  * Only to be used with channel CHANNEL_PROPERTY.
@@ -64,6 +73,11 @@ struct property_buffer {
 	};
 	struct tag tags[];
 } __attribute__((aligned(16)));
+
+/* See bit 31 of property_buffer.response_code documentation above. */
+#define PROP_RESPONSE_CODE_RESPONSE 0x80000000
+/* See bit 0 of property_buffer.response_code documentation above. */
+#define PROP_RESPONSE_CODE_ERROR 0x1
 
 /*
  * Defines the type of a message sent through the VideoCore mailbox.
@@ -83,7 +97,7 @@ enum channel {
 
 static bool mbox1_status_full_flag_set(void)
 {
-	return register_get(&vcmailbox_access, MBOX1_STATUS)&1<<31;
+	return register_get(&vcmailbox_access, MBOX1_STATUS)&MBOX1_STATUS_FULL;
 }
 
 /*
@@ -104,7 +118,7 @@ static void vcmailbox_write_message(uint32_t data, enum channel chan)
 
 static bool mbox0_status_empty_flag_set(void)
 {
-	return register_get(&vcmailbox_access, MBOX0_STATUS)&1<<30;
+	return register_get(&vcmailbox_access, MBOX0_STATUS)&MBOX0_STATUS_EMPTY;
 }
 
 /*
@@ -207,9 +221,9 @@ static enum vcmailbox_error return_tag_responses(struct property_buffer *prop,
 		if (tag->id != req->id)
 			/* Or got a response from a tag that wasn't supposed to be there. */
 			return VCMBOX_ERROR_TAG_RESPONSE_OUT_OF_ORDER;
-		if (!(tag->response_code&1<<31))
+		if (!(tag->response_code&TAG_RESPONSE_CODE_RESPONSE))
 			return VCMBOX_ERROR_TAG_RESPONSE_BIT_NOT_SET;
-		if (req->ret_sz != (tag->response_code&~(1<<31))) 
+		if (req->ret_sz != (tag->response_code&~(TAG_RESPONSE_CODE_RESPONSE))) 
 			return VCMBOX_ERROR_TAG_RESPONSE_SIZE_MISMATCH;
 
 		if (req->ret_sz) {
@@ -239,9 +253,9 @@ enum vcmailbox_error vcmailbox_request_tags(struct tag_request *tag_requests, in
 
 	if (recv_prop != send_prop)
 		return VCMBOX_ERROR_BUFFER_RESPONSE_ADDR_MISMATCH;
-	if (!(recv_prop->response_code&1<<31)) 
+	if (!(recv_prop->response_code&PROP_RESPONSE_CODE_RESPONSE)) 
 		return VCMBOX_ERROR_BUFFER_RESPONSE_BIT_NOT_SET;
-	if (recv_prop->response_code&1) 
+	if (recv_prop->response_code&PROP_RESPONSE_CODE_ERROR) 
 		return VCMBOX_ERROR_PARSING_REQUEST;
 
 	return return_tag_responses(recv_prop, tag_requests, n);
