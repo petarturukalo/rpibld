@@ -157,12 +157,12 @@ void c_entry(void)
 	 * scratch registers r1, r2, r3 because compilation overwrites 
 	 * the scratch registers when loading the addresses, e.g. instruction
 	 *
-	 * "mov r4, %0"
+	 *	mov r4, %0
 	 *
 	 * becomes
 	 *
-	 * "mov r3, <immediate>"
-	 * "mov r4, r3"
+	 *	mov r3, <immediate>
+	 *	mov r4, r3
 	 *
 	 * after compilation, where <immediate> is the value substituted into %0.
 	 */
