@@ -19,5 +19,6 @@ SECTIONS
 	.text : { *(.text) }
 	.data : { *(.data) }
 	.bss : { *(.bss) }  /* Note .bss isn't zeroed. */
+	.rodata : { *(.rodata) }
 	/DISCARD/ : { *(*) }
 }
