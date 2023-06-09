@@ -19,7 +19,7 @@ CFLAGS=-nostdlib -r -march=armv7ve -Wunused-variable -Werror=undef -Iinclude \
        
 # Link with -lgcc to resolve undefined reference to __aeabi_idivmod, 
 # needed to use the C modulo % operator. 
-LDFLAGS=-T $(linker_script) -static -L $(libgcc_searchdir)
+LDFLAGS=-T $(linker_script) -static -L $(libgcc_searchdir) --no-warn-rwx-segments
 LDLIBS=-lgcc
 
 
@@ -30,7 +30,7 @@ build/bootloader.elf: $(objs) $(linker_script)
 	$(cross_prefix)-ld $(LDFLAGS) $(objs) $(LDLIBS) -o $@
 
 build/%.o: bld/%.S
-	$(cross_prefix)-as $< -o $@
+	$(cross_prefix)-as $< -o $@ 
 
 build/%.o: bld/%.c
 	$(cross_prefix)-gcc $(CFLAGS) $< -o $@
