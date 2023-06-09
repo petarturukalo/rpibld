@@ -133,8 +133,9 @@ void c_entry(void)
 			 (void *)item_lba);
 	if (KERN_RAM_ADDR+item->itemsz >= DTB_RAM_ADDR)
 		signal_error(ERROR_KERN_OVERFLOW);
-	if (*(uint32_t *)(KERN_RAM_ADDR+ZIMAGE_MAGIC_OFF) != ZIMAGE_MAGIC)
-		signal_error(ERROR_IMAGE_CONTENTS);
+	// TODO uncomment
+	/*if (*(uint32_t *)(KERN_RAM_ADDR+ZIMAGE_MAGIC_OFF) != ZIMAGE_MAGIC)*/
+		/*signal_error(ERROR_IMAGE_CONTENTS);*/
 	item_lba += bytes_to_blocks(item->itemsz);
 	item = load_item(ITEM_ID_DEVICE_TREE_BLOB, (byte_t *)(DTB_RAM_ADDR-sizeof(struct item)), 
 			 (void *)item_lba);
@@ -166,8 +167,6 @@ void c_entry(void)
 	 *
 	 * after compilation, where <immediate> is the value substituted into %0.
 	 */
-	// TODO hvc jumps to exception vector so can't see LED?
-	/*__asm__("hvc #0\n\t" */
 	__asm__("mov r4, %0\n\t"  /* Store device tree blob in r4. */
 		"mov r5, %1\n\t"  /* Store kernel in r5. */
 		/* Set the values of registers r0, r1, r2 required to boot the kernel. */
@@ -176,11 +175,15 @@ void c_entry(void)
 		 * r1 is machine type and is set to ~0 (all 1s) to not match a 
 		 * machine because it's determined by the device tree instead.
 		 */
-		"mvn r1, #0\n\t"
+		// TODO 3138 or ~0? 3138 is what the GPU firmware put in r1
+		/*"mvn r1, #0\n\t"*/
+		"mov r1, #3138\n\t"
 		/* Set r2 to address of device tree blob. */
 		"mov r2, r4\n\t"
 		/* Jump to kernel. */
 		"bx r5"
+		// TODO can't get the hyp exception vector to execute */
+		/*__asm__("hvc #0\n\t" */
 		:
 		: "r" (DTB_RAM_ADDR), "r" (KERN_RAM_ADDR));
 

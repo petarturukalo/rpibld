@@ -11,6 +11,9 @@
 .global c_entry
 .global ic_irq_exception_handler
 
+/* Same as boot.c:KERN_RAM_ADDR. */
+.equ KERN_RAM_ADDR, 0x2000000
+
 /*
  * The addresses that the IRQ and supervisor (SVC) mode stacks start at.
  * Each has 1 MiB of stack space. They are 4-byte aligned as they won't 
@@ -25,8 +28,9 @@
 .equ CPSR_SVC_MODE,  0b10011
 
 /* Offset to exception handler vectors from very start of memory. */
+/* TODO remove hyp code here if find don't need it */
+.equ HYP_VECTOR_OFFSET, 0x14
 .equ IRQ_VECTOR_OFFSET, 0x18
-.equ FIQ_VECTOR_OFFSET, 0x1c
 
 .global asm_entry
 asm_entry:
@@ -79,6 +83,16 @@ asm_entry:
 	msr cpsr, r1
 	mov sp, #SVC_STACK_START_ADDR
 
+	
+	/* Set exception vectors in the vector table. */
+	/*
+	 * Set the hypervisor exception vector to an instruction that will jump
+	 * to the kernel. TODO explain why
+	 */
+	ldr r0, hyp_exception_vector
+	ldr r1, =HYP_VECTOR_OFFSET
+	str r0, [r1]
+
 	/*
 	 * Set the exception handler vector for the IRQ exception in the vector table
 	 * to an instruction that will branch to irq_exception_handler.
@@ -93,7 +107,7 @@ asm_entry:
 	 * This will overwrite the FIQ exception vector, but that's okay because we won't be using any FIQs.
 	 */
 	ldr r0, addr_irq_exception_handler
-	ldr r1, =FIQ_VECTOR_OFFSET
+	add r1, r1, #4
 	str r0, [r1]
 
 	bl c_entry
@@ -126,6 +140,9 @@ irq_exception_handler:
 	 * was raised.
 	 */
 	subs pc, lr, #4
+
+hyp_exception_vector:
+	ldr pc, =KERN_RAM_ADDR
 
 irq_exception_vector:
 	ldr pc, addr_irq_exception_handler
