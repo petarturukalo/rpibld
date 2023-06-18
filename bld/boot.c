@@ -10,6 +10,8 @@
 #include "timer.h" // TODO rm
 #include "heap.h" // TODO rm
 #include "help.h" // TODO rm
+#include "tag.h" // TODO rm
+#include "uart.h"
 
 /* Addresses in RAM that the kernel / device tree blob are loaded to. */
 /* 32 MiB. */
@@ -96,6 +98,7 @@ void c_entry(void)
 
 	enable_interrupts();
 	ic_enable_interrupts();
+	uart_init();
 
 	error = sd_init();
 	if (error != SD_INIT_ERROR_NONE) 
@@ -133,9 +136,8 @@ void c_entry(void)
 			 (void *)item_lba);
 	if (KERN_RAM_ADDR+item->itemsz >= DTB_RAM_ADDR)
 		signal_error(ERROR_KERN_OVERFLOW);
-	// TODO uncomment
-	/*if (*(uint32_t *)(KERN_RAM_ADDR+ZIMAGE_MAGIC_OFF) != ZIMAGE_MAGIC)*/
-		/*signal_error(ERROR_IMAGE_CONTENTS);*/
+	if (*(uint32_t *)(KERN_RAM_ADDR+ZIMAGE_MAGIC_OFF) != ZIMAGE_MAGIC)
+		signal_error(ERROR_IMAGE_CONTENTS);
 	item_lba += bytes_to_blocks(item->itemsz);
 	item = load_item(ITEM_ID_DEVICE_TREE_BLOB, (byte_t *)(DTB_RAM_ADDR-sizeof(struct item)), 
 			 (void *)item_lba);
@@ -177,6 +179,7 @@ void c_entry(void)
 		 */
 		// TODO 3138 or ~0? 3138 is what the GPU firmware put in r1
 		/*"mvn r1, #0\n\t"*/
+		/* TODO this comes from https://www.arm.linux.org.uk/developer/machines/ */
 		"mov r1, #3138\n\t"
 		/* Set r2 to address of device tree blob. */
 		"mov r2, r4\n\t"

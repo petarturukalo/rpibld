@@ -2,7 +2,6 @@
 #include "mmio.h"
 #include "timer.h"
 #include "int.h"
-#include "led.h" // TODO rm
 #include "sd/cmd.h"
 
 enum arm_local_register {

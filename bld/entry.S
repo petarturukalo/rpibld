@@ -12,6 +12,7 @@
 .global ic_irq_exception_handler
 
 /* Same as boot.c:KERN_RAM_ADDR. */
+// TODO how does kernel head.S use .c #defines?
 .equ KERN_RAM_ADDR, 0x2000000
 
 /*

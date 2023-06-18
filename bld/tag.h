@@ -27,6 +27,7 @@ struct power_state tag_power_get_state(uint32_t dev_id);
 
 
 enum clock_id {
+	CLK_CORE  = 0x4,  /* VPU. */
 	CLK_EMMC2 = 0xc
 };
 

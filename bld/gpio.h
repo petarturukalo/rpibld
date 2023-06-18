@@ -5,7 +5,8 @@
 #define GPIO_H
 
 enum gpio_pin {
-	GPIO_PIN_LED = 42
+	GPIO_PIN_TXD1 = 14,
+	GPIO_PIN_LED  = 42
 };
 
 /* GPIO pin operation. */

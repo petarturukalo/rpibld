@@ -10,7 +10,6 @@
 #include "../help.h"
 #include "reg.h"
 #include "cmd.h"
-#include "../led.h"//TODO rm
 #include "../debug.h"//TODO rm
 #include "../timer.h"//TODO rm
 
@@ -194,7 +193,7 @@ static void sd_supply_clock(int clock_rate)
 	 * Zero previous clock divider bits.
 	 * TODO didn't fix problem of being able to change clock but it should have?
 	 * from printing can confirm it's clearing the previous divider. or maybe it did change
-	 * but it's still slow for w/e reason
+	 * but it's still slow for w/e reason TODO this TODO is outdated?
 	 */
 	register_disable_bits(&sd_access, CONTROL1, CONTROL1_CLK_FREQ_SEL);
 	/* Set clock divider and enable internal clock. */

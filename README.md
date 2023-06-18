@@ -111,9 +111,9 @@ the host controller specification which the SD peripheral implements
 * [SD Physical Layer Specification Version 3.01](https://www.sdcard.org/downloads/pls/archives/):
 the physical layer specification which the SD peripheral implements
 
-
-
 TODO ADD THIS TO THE ARM CPU SECTION: AAPCS arm procedure call standard https://github.com/ARM-software/abi-aa/blob/844a79fd4c77252a11342709e3b27b2c9f590cf1/aapcs32/aapcs32.rst - helpful to know which registers are safe to use when writing assembly that will be mixed with compiled C
+TODO https://elinux.org/BCM2835_datasheet_errata#p12 - fixes of errors in mini UART doc of BCM2711 datasheet
+
 
 TODO
 - as find and use more resources add them to resources section
@@ -124,3 +124,4 @@ TODO
 https://www.kernel.org/doc/html/latest/arm/booting.html
 http://www.simtec.co.uk/products/SWLINUX/files/booting_article.html#d0e309
 - add troubleshooting section on selecting a cmdline?
+

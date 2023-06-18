@@ -52,7 +52,7 @@ uint32_t bswap32(uint32_t value);
  * on hardware that are expected to change, but might not (even if
  * very unlikely).
  *
- * This way the user at least knows that an infinite could have happened,
+ * This way the user at least knows that an infinite loop could have happened,
  * opposed to getting stuck in an infinite loop and the user not knowing 
  * whether it's an infinite loop or another issue.
  */

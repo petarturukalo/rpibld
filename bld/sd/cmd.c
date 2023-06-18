@@ -4,7 +4,6 @@
 #include "../timer.h"
 #include "../debug.h"// TODO rm
 #include "../error.h"// TODO rm
-#include "../led.h"// TODO rm
 
 /*
  * Arguments used by some addressed commands requiring
