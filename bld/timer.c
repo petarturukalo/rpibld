@@ -94,14 +94,14 @@ void sleep(int milliseconds)
 	usleep(ms_to_us(milliseconds));
 }
 
-void timer_poll_start(int milliseconds, struct timestamp *ts)
+timestamp_t timer_poll_start(int milliseconds)
 {
 	int current_ticks = register_get(&timer_access, CLO);
-	ts->timestamp = current_ticks+ms_to_us(milliseconds);
+	return current_ticks+ms_to_us(milliseconds);
 }
 
-bool timer_poll_done(struct timestamp *ts)
+bool timer_poll_done(timestamp_t ts)
 {
 	int current_ticks = register_get(&timer_access, CLO);
-	return current_ticks >= ts->timestamp;
+	return current_ticks >= ts;
 }

@@ -44,8 +44,8 @@ void sleep(int milliseconds);
  * at power on (the BCM2711 datasheet says they are), and that the pi hasn't been running for almost ~71 
  * minutes (which is very unlikely since this is a bootloader).
  */
-struct timestamp { uint32_t timestamp; };
-void timer_poll_start(int milliseconds, struct timestamp *ts);
-bool timer_poll_done(struct timestamp *ts);
+typedef uint32_t timestamp_t;
+timestamp_t timer_poll_start(int milliseconds);
+bool timer_poll_done(timestamp_t ts);
 
 #endif

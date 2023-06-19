@@ -51,11 +51,11 @@ uint32_t bswap32(uint32_t value)
 
 void while_cond_timeout_infinite(bool (*condition)(void), int timeout_ms)
 {
-	struct timestamp ts;
+	timestamp_t ts;
 	
-	timer_poll_start(timeout_ms, &ts);
+	ts = timer_poll_start(timeout_ms);
 	while (condition()) {
-		if (timer_poll_done(&ts))
+		if (timer_poll_done(ts))
 			signal_error(ERROR_INFINITE_LOOP);
 	}
 }

@@ -167,12 +167,12 @@ static void set_cmdtm(struct command *cmd, struct cmdtm *cmdtm)
  */
 static struct interrupt sd_wait_for_any_interrupt(void)
 {
-	struct timestamp ts;
+	timestamp_t ts;
 	struct interrupt irpt;
 
 	mzero(&irpt, sizeof(irpt));
 
-	timer_poll_start(500, &ts);
+	ts = timer_poll_start(500);
 	do {
 		register_get_out(&sd_access, INTERRUPT, &irpt);
 
@@ -182,7 +182,7 @@ static struct interrupt sd_wait_for_any_interrupt(void)
 			break;
 		}
 		usleep(50);
-	} while (!timer_poll_done(&ts));
+	} while (!timer_poll_done(ts));
 
 	return irpt;
 }
@@ -324,7 +324,7 @@ enum cmd_error sd_issue_acmd41(bool host_capacity_support, bool *card_capacity_s
 {
 	uint32_t args, ocr;
 	enum cmd_error error;
-	struct timestamp ts;
+	timestamp_t ts;
 	/* Card has a default RCA of 0 when in idle state. */
 	int rca = 0;
 	int i = 0;
@@ -350,7 +350,7 @@ enum cmd_error sd_issue_acmd41(bool host_capacity_support, bool *card_capacity_s
 	args |= host_capacity_support<<ACMD41_HOST_CAPACITY_SUPPORT_SHIFT;
 
 	/* Wait for card to finish power up, which should take at most 1 second from the first init ACMD41. */
-	timer_poll_start(1000, &ts);
+	ts = timer_poll_start(1000);
 	do {
 		if (i++)
 			sleep(20);
@@ -358,7 +358,7 @@ enum cmd_error sd_issue_acmd41(bool host_capacity_support, bool *card_capacity_s
 		if (error != CMD_ERROR_NONE)
 			return error;
 		register_get_out(&sd_access, RESP0, &ocr);
-	} while (!(ocr&OCR_CARD_POWER_UP_STATUS) && !timer_poll_done(&ts));
+	} while (!(ocr&OCR_CARD_POWER_UP_STATUS) && !timer_poll_done(ts));
 
 	if (ocr&OCR_CARD_POWER_UP_STATUS) {
 		*card_capacity_support_out = ocr&OCR_CARD_CAPACITY_STATUS;
