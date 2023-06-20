@@ -2,6 +2,7 @@
 #include "uart.h"
 #include "timer.h"
 #include "help.h"
+#include "error.h"
 #include <stdarg.h>
 
 int Strlen(char *s)
@@ -136,9 +137,9 @@ static bool specifier_supports_field_width(char spec)
  * The last available byte will always be NULL terminated.
  *
  * WARNING if arguments are misused or wrong, e.g. if there's an unsupported 
- * or unfinished conversion specifier or there's not enough space in the output
- * buffer to write out a conversion, etc., then this function fails and behaviour
- * is undefined.
+ * or unfinished conversion specifier in the format string or there's not enough 
+ * space in the output buffer to write out a conversion, etc., then this function 
+ * fails and signals error ERROR_VSNPRINTF.
  */
 static void Vsnprintf(char *s, int n, char *fmt, va_list ap)
 {
@@ -164,13 +165,13 @@ static void Vsnprintf(char *s, int n, char *fmt, va_list ap)
 
 			/* Move to char after %, but only if it doesn't overrun the length. */
 			if (r++ >= fmtlen) 
-				goto Vsnprintf_fail;
+				signal_error(ERROR_VSNPRINTF);
 
 			/* Select character used to pad field width. */
 			if (fmt[r] == '0') {
 				pad = '0';
 				if (r++ >= fmtlen)
-					goto Vsnprintf_fail;
+					signal_error(ERROR_VSNPRINTF);
 			}
 			/* Extract field width. */
 			i = str_find_char_not_in_set(fmt+r, "0123456789");
@@ -179,14 +180,14 @@ static void Vsnprintf(char *s, int n, char *fmt, va_list ap)
 				/* Set index to start of specifier. */
 				r += i;
 				if (r >= fmtlen || !specifier_supports_field_width(fmt[r])) 
-					goto Vsnprintf_fail;
+					signal_error(ERROR_VSNPRINTF);
 			}
 
 			/* Get specifier's argument.*/
 			switch (fmt[r]) {
 				default:
 					/* Invalid specifier*/
-					goto Vsnprintf_fail;
+					signal_error(ERROR_VSNPRINTF);
 				case 'u':
 					sarg = uint_to_str(va_arg(ap, uint32_t));
 					break;
@@ -208,8 +209,6 @@ static void Vsnprintf(char *s, int n, char *fmt, va_list ap)
 		} else 
 			s[w++] = fmt[r];
 	}
-/* TODO signal error on Vsnprintf_fail? */
-Vsnprintf_fail:
 	/* Null terminate. */
 	if (w < n)
 		s[w] = '\0';
