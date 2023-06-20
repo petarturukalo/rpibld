@@ -13,6 +13,11 @@
 #define array_len(array) (sizeof(array)/sizeof(array[0]))
 
 /*
+ * Return the lesser of two numbers.
+ */
+int min(int n, int m);
+
+/*
  * Return the greater of two numbers.
  */
 int max(int n, int m);

@@ -10,7 +10,7 @@
 #include "../help.h"
 #include "reg.h"
 #include "cmd.h"
-#include "../debug.h"//TODO rm
+#include "../debug.h"
 #include "../timer.h"//TODO rm
 
 /* 100 MHz. */
@@ -67,11 +67,16 @@ static void sd_assert_base_clock(void)
 	int rate;
 
 	state = tag_clock_get_state(CLK_EMMC2);
-	if (state.clk_not_exists || !state.on)
+	if (state.clk_not_exists || !state.on) {
+		serial_log("SD init error: EMMC2 clock either doesn't exist or isn't on");
 		signal_error(ERROR_VC_NOT_INIT_MMC);
+	}
 	rate = tag_clock_get_rate(CLK_EMMC2);
-	if (rate != EMMC2_EXPECTED_BASE_CLOCK_HZ)
+	if (rate != EMMC2_EXPECTED_BASE_CLOCK_HZ) {
+		serial_log("SD init error: EMMC2 clock rate %u Hz doesn't match expected clock rate %u Hz",
+			   rate, EMMC2_EXPECTED_BASE_CLOCK_HZ);
 		signal_error(ERROR_VC_NOT_INIT_MMC);
+	}
 }
 
 /*
@@ -84,11 +89,17 @@ static void sd_assert_voltage(void)
 	int state;
 
 	cfg = tag_gpio_get_config(GPIO_EXPANDER_VDD_SD_IO_SEL);
-	if (!gpio_config_pin_is_output(&cfg) || !gpio_config_pin_is_active_high(&cfg))
+	if (!gpio_config_pin_is_output(&cfg) || !gpio_config_pin_is_active_high(&cfg)) {
+		serial_log("SD init error: expected GPIO expander pin SD voltage select to be both "
+			   "an output and active high");
 		signal_error(ERROR_VC_NOT_INIT_MMC);
+	}
 	state = tag_gpio_get_state(GPIO_EXPANDER_VDD_SD_IO_SEL);
-	if (state) 
+	if (state) {
+		serial_log("SD init error: GPIO expander pin SD voltage select has 1.8V selected, "
+			   "but expected 3.3V");
 		signal_error(ERROR_VC_NOT_INIT_MMC);
+	}
 }
 
 /*
@@ -100,11 +111,16 @@ static void sd_assert_card_power(void)
 	int state;
 
 	cfg = tag_gpio_get_config(GPIO_EXPANDER_SD_PWR_ON);
-	if (!gpio_config_pin_is_output(&cfg) || !gpio_config_pin_is_active_high(&cfg))
+	if (!gpio_config_pin_is_output(&cfg) || !gpio_config_pin_is_active_high(&cfg)) {
+		serial_log("SD init error: expected GPIO expander pin SD card power to be both "
+			   "an output and active high");
 		signal_error(ERROR_VC_NOT_INIT_MMC);
+	}
 	state = tag_gpio_get_state(GPIO_EXPANDER_SD_PWR_ON);
-	if (!state) 
+	if (!state) {
+		serial_log("SD init error: GPIO expander pin SD card power not selected to supply power");
 		signal_error(ERROR_VC_NOT_INIT_MMC);
+	}
 }
 
 /*
@@ -290,6 +306,7 @@ static enum sd_init_error sd_card_init_and_identify(struct card *card)
 	 * No response is indicated by CMD_ERROR_WAIT_FOR_INTERRUPT_TIMEOUT.
 	 * TODO is CMD_ERROR_WAIT_FOR_INTERRUPT_TIMEOUT the correct way to test for no response?
 	 * (need to get a version < 2 card to test with)
+	 * TODO fix up returns from cmd8 and add serial_log() above?
 	 */
 	cmd8_response = error == CMD_ERROR_NONE;
 	card->version_2_or_later = cmd8_response;
@@ -346,6 +363,7 @@ enum sd_init_error sd_init_card(struct card *card_out)
 	enum cmd_error cmd_error;
 	struct card_status cs;
 
+	serial_log("Initialising SD...");
 	mzero(card_out, sizeof(struct card));
 
 	sd_pre_cmd_init();
@@ -371,8 +389,12 @@ enum sd_init_error sd_init_card(struct card *card_out)
 		return SD_INIT_ERROR_ISSUE_CMD;
 	/* Verify card got put into transfer state. */
 	cmd_error = sd_issue_cmd13(card_out->rca, &cs);
-	if (cmd_error != CMD_ERROR_NONE || cs.current_state != CARD_STATE_TRANSFER) 
+	if (cmd_error != CMD_ERROR_NONE)
 		return SD_INIT_ERROR_ISSUE_CMD;
+	if (cs.current_state != CARD_STATE_TRANSFER) {
+		serial_log("SD init error: cmd 13 didn't put card into transfer state");
+		return SD_INIT_ERROR_ISSUE_CMD;
+	}
 
 	card_out->state = CARD_STATE_TRANSFER;
 
@@ -381,6 +403,7 @@ enum sd_init_error sd_init_card(struct card *card_out)
 		return sd_init_error;
 
 	sd_enable_transfer_interrupts();
+	serial_log("Successfully initialised SD");
 	return SD_INIT_ERROR_NONE;
 }
 

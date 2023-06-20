@@ -64,7 +64,7 @@ TODO
 
 ## error signalling?
 
-TODO
+TODO explain LED and mini UART debug serial 
 
 
 # Resources

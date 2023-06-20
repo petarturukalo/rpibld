@@ -2,7 +2,7 @@
 #include "reg.h"
 #include "../help.h"
 #include "../timer.h"
-#include "../debug.h"// TODO rm
+#include "../debug.h"
 #include "../error.h"// TODO rm
 
 /*
@@ -195,17 +195,24 @@ enum cmd_error sd_wait_for_interrupt(int interrupt_mask)
 {
 	struct interrupt irpt = sd_wait_for_any_interrupt();
 
-	if (!cast_bitfields(irpt, uint32_t))
+	if (!cast_bitfields(irpt, uint32_t)) {
+		serial_log("SD cmd error: timeout waiting for interrupt %08x", interrupt_mask);
 		return CMD_ERROR_WAIT_FOR_INTERRUPT_TIMEOUT;
+	}
 	if (irpt.error) {
 		/* 
 		 * Note might be worth checking which error it was and then retrying 
 		 * instead of failing. 
 		 */
+		serial_log("SD cmd error: error interrupt triggered: %08x", 
+			   cast_bitfields(irpt, uint32_t));
 		return CMD_ERROR_INTERRUPT_ERROR;
 	}
-	if (!(cast_bitfields(irpt, uint32_t)&interrupt_mask)) 
+	if (!(cast_bitfields(irpt, uint32_t)&interrupt_mask)) {
+		serial_log("SD cmd error: expected interrupt %08x not triggered: %08x",
+			   interrupt_mask, cast_bitfields(irpt, uint32_t));
 		return CMD_ERROR_EXPECTED_INTERRUPT_NOT_TRIGGERED;
+	}
 	return CMD_ERROR_NONE;
 }
 
@@ -227,6 +234,14 @@ static bool sd_card_status_error_bit_set(struct card_status *cs)
 		cs->address_error || cs->out_of_range;
 }
 
+/* 
+ * IDX_SPEC is the command index conversion specifier used in the format string 
+ * of serial_log() to substitute in a command index and whether it's an application 
+ * command. IDX_SPEC_ARGS are the arguments used to expand the specifier. 
+ */
+#define IDX_SPEC "%s%u"
+#define IDX_SPEC_ARGS(idx) idx&IS_APP_CMD ? "APP" : "", idx&~IS_APP_CMD
+
 enum cmd_error sd_issue_cmd(enum cmd_index idx, uint32_t args)
 {
 	struct command *cmd;
@@ -235,15 +250,23 @@ enum cmd_error sd_issue_cmd(enum cmd_index idx, uint32_t args)
 	enum cmd_error error;
 
 	cmd = get_command(idx);
-	if (!cmd) 
+	if (!cmd) {
+		serial_log("SD cmd error: command " IDX_SPEC " not implemented", IDX_SPEC_ARGS(idx));
 		return CMD_ERROR_COMMAND_UNIMPLEMENTED;
+	}
 	status = register_get(&sd_access, STATUS);
-	if (status&STATUS_COMMAND_INHIBIT_CMD) 
+	if (status&STATUS_COMMAND_INHIBIT_CMD) {
+		serial_log("SD cmd error: CMD line already set when trying to issue command " IDX_SPEC,
+			   IDX_SPEC_ARGS(idx));
 		return CMD_ERROR_COMMAND_INHIBIT_CMD_BIT_SET;
+	}
 	/* Note if implement an abort command such as CMD12 then need to let it skip this step. */
 	if ((cmd->type == CMD_TYPE_ADTC || cmd->response == CMD_RESPONSE_R1B_NORMAL_BUSY) && 
-	    status&STATUS_COMMAND_INHIBIT_DAT) 
+	    status&STATUS_COMMAND_INHIBIT_DAT) {
+		serial_log("SD cmd error: command " IDX_SPEC " uses DAT line but DAT line already set", 
+			   IDX_SPEC_ARGS(idx));
 		return CMD_ERROR_COMMAND_INHIBIT_DAT_BIT_SET;
+	}
 
 	/* Set the command's arguments. Note if implement ACMD23 it needs to use ARG2 instead. */
 	register_set(&sd_access, ARG1, args);
@@ -258,8 +281,11 @@ enum cmd_error sd_issue_cmd(enum cmd_index idx, uint32_t args)
 	if (error == CMD_ERROR_NONE && sd_cmd_has_card_status_response(cmd)) {
 		struct card_status cs;
 		register_get_out(&sd_access, RESP0, &cs);
-		if (sd_card_status_error_bit_set(&cs))
+		if (sd_card_status_error_bit_set(&cs)) {
+			serial_log("SD cmd error: command " IDX_SPEC " has error returned in card "
+				   "status register: %08x", IDX_SPEC_ARGS(idx), cast_bitfields(cs, uint32_t));
 			return CMD_ERROR_CARD_STATUS_ERROR;;
+		}
 	}
 	return error;
 }
@@ -278,8 +304,11 @@ enum cmd_error sd_issue_acmd(enum cmd_index idx, uint32_t args, int rca)
 	if (error != CMD_ERROR_NONE)
 		return error;
 	register_get_out(&sd_access, RESP0, &cs);
-	if (!cs.app_cmd)
+	if (!cs.app_cmd) {
+		serial_log("SD cmd error: application command bit not set by cmd 55 when "
+			   "trying to issue command " IDX_SPEC, IDX_SPEC_ARGS(idx));
 		return CMD_ERROR_RESPONSE_CONTENTS;
+	}
 	return sd_issue_cmd(idx, args);
 }
 
@@ -302,8 +331,11 @@ enum cmd_error sd_issue_cmd8(void)
 	if (error == CMD_ERROR_NONE) {
 		/* Assert sent voltage range and check pattern are echoed back in the response. */
 		register_get_out(&sd_access, RESP0, &resp);
-		if (!mcmp(&args, &resp, sizeof(args)))
+		if (!mcmp(&args, &resp, sizeof(args))) {
+			serial_log("SD cmd error: cmd 8: sent voltage and check pattern %08x doesn't "
+				   "match response %08x", cast_bitfields(args, uint32_t), cast_bitfields(resp, uint32_t));
 			error = CMD_ERROR_RESPONSE_CONTENTS;
+		}
 	}
 	return error;
 }
@@ -342,8 +374,11 @@ enum cmd_error sd_issue_acmd41(bool host_capacity_support, bool *card_capacity_s
 		return error;
 	register_get_out(&sd_access, RESP0, &ocr);
 	/* Assert the card supports the voltage range. */
-	if (ocr&OCR_VDD_2V7_TO_3V6 != OCR_VDD_2V7_TO_3V6)
+	if (ocr&OCR_VDD_2V7_TO_3V6 != OCR_VDD_2V7_TO_3V6) {
+		serial_log("SD cmd error: app cmd 41: card does not support the voltage range: "
+			   "ocr reg %08x", ocr);
 		return CMD_ERROR_RESPONSE_CONTENTS;
+	}
 
 	/* Set args for init ACMD41. */
 	args |= OCR_VDD_2V7_TO_3V6;
@@ -364,6 +399,7 @@ enum cmd_error sd_issue_acmd41(bool host_capacity_support, bool *card_capacity_s
 		*card_capacity_support_out = ocr&OCR_CARD_CAPACITY_STATUS;
 		return CMD_ERROR_NONE;
 	}
+	serial_log("SD cmd error: app cmd 41: timeout waiting for card to power up");
 	return CMD_ERROR_GENERAL_TIMEOUT;
 }
 
@@ -386,8 +422,11 @@ enum cmd_error sd_issue_cmd3(int *rca_out)
 	if (error == CMD_ERROR_NONE) {
 		register_get_out(&sd_access, RESP0, &resp);
 		if (resp.cs_ake_seq_error || resp.cs_error || 
-		    resp.cs_illegal_command || resp.cs_com_crc_error)
+		    resp.cs_illegal_command || resp.cs_com_crc_error) {
+			serial_log("SD cmd error: cmd 3: error set in response: %08x",
+				   cast_bitfields(resp, uint32_t));
 			return CMD_ERROR_CARD_STATUS_ERROR;
+		}
 		*rca_out = resp.rca;
 	}
 	return error;

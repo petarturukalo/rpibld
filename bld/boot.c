@@ -99,10 +99,13 @@ void c_entry(void)
 	enable_interrupts();
 	ic_enable_interrupts();
 	uart_init();
+	serial_log("Bootloader started: enabled interrupts and mini UART");
 
 	error = sd_init();
-	if (error != SD_INIT_ERROR_NONE) 
+	if (error != SD_INIT_ERROR_NONE)  {
+		serial_log("Failed to initialise SD");
 		signal_error(ERROR_SD_INIT);
+	}
 	mbr_base_addr = heap_get_base_address();
 	/* Read MBR from first block on SD card into RAM. */
 	if (!sd_read_blocks(mbr_base_addr, (void *)0, 1))
