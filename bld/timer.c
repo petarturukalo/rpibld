@@ -105,3 +105,8 @@ bool timer_poll_done(timestamp_t ts)
 	int current_ticks = register_get(&timer_access, CLO);
 	return current_ticks >= ts;
 }
+
+timestamp_t timer_current(void)
+{
+	return register_get(&timer_access, CLO);
+}

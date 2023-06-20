@@ -48,4 +48,9 @@ typedef uint32_t timestamp_t;
 timestamp_t timer_poll_start(int milliseconds);
 bool timer_poll_done(timestamp_t ts);
 
+/*
+ * Get a timestamp of the current time.
+ */
+timestamp_t timer_current(void);
+
 #endif
