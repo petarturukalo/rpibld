@@ -1,6 +1,7 @@
 #include "tag.h"
 #include "vcmailbox.h"
 #include "error.h"
+#include "debug.h"
 
 struct power_state tag_power_get_state(uint32_t dev_id)
 {
@@ -12,8 +13,11 @@ struct power_state tag_power_get_state(uint32_t dev_id)
 				   &ret, sizeof(ret) };
 	enum vcmailbox_error error = vcmailbox_request_tags(&req, 1);
 
-	if (error != VCMBOX_ERROR_NONE || ret.dev_id != dev_id)
+	if (error != VCMBOX_ERROR_NONE || ret.dev_id != dev_id) {
+		serial_log("Vcmailbox error: power get state: %08x %08x", 
+			   dev_id, ret.dev_id);
 		signal_error(ERROR_VCMAILBOX);
+	}
 	return ret.state;
 }
 
@@ -28,8 +32,11 @@ struct clock_state tag_clock_get_state(uint32_t clk_id)
 				   &ret, sizeof(ret) };
 	enum vcmailbox_error error = vcmailbox_request_tags(&req, 1);
 
-	if (error != VCMBOX_ERROR_NONE || ret.clk_id != clk_id)
+	if (error != VCMBOX_ERROR_NONE || ret.clk_id != clk_id) {
+		serial_log("Vcmailbox error: clock get state: %08x %08x",
+			   clk_id, ret.clk_id);
 		signal_error(ERROR_VCMAILBOX);
+	}
 	return ret.state;
 }
 
@@ -43,8 +50,11 @@ uint32_t tag_clock_get_rate(uint32_t clk_id)
 				   &ret, sizeof(ret) };
 	enum vcmailbox_error error = vcmailbox_request_tags(&req, 1);
 
-	if (error != VCMBOX_ERROR_NONE || ret.clk_id != clk_id)
+	if (error != VCMBOX_ERROR_NONE || ret.clk_id != clk_id) {
+		serial_log("Vcmailbox error: clock get rate: %08x %08x",
+			   clk_id, ret.clk_id);
 		signal_error(ERROR_VCMAILBOX);
+	}
 	return ret.rate;
 }
 
@@ -73,8 +83,10 @@ uint32_t tag_gpio_get_state(uint32_t pin)
 	enum vcmailbox_error error = vcmailbox_request_tags(&req, 1);
 
 	/* A non-zero "unused" is an error in the Linux Raspberry Pi 3 expander GPIO driver. */
-	if (error != VCMBOX_ERROR_NONE || ret.unused != 0)
+	if (error != VCMBOX_ERROR_NONE || ret.unused != 0) {
+		serial_log("Vcmailbox error: gpio get state: %08x", ret.unused);
 		signal_error(ERROR_VCMAILBOX);
+	}
 	return ret.state;
 }
 
@@ -87,8 +99,10 @@ struct gpio_expander_pin_config tag_gpio_get_config(uint32_t pin)
 	enum vcmailbox_error error = vcmailbox_request_tags(&req, 1);
 
 	/* A non-zero "unused" is an error in the Linux Raspberry Pi 3 expander GPIO driver. */
-	if (error != VCMBOX_ERROR_NONE || cfg.unused != 0)
+	if (error != VCMBOX_ERROR_NONE || cfg.unused != 0) {
+		serial_log("Vcmailbox error: gpio get config: %08x", cfg.unused);
 		signal_error(ERROR_VCMAILBOX);
+	}
 	return cfg;
 }
 
