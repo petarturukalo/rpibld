@@ -123,7 +123,7 @@ void c_entry(void)
 	serial_log("Bootloader started: enabled interrupts and mini UART");
 
 	error = sd_init();
-	if (error != SD_INIT_ERROR_NONE)  {
+	if (error != SD_INIT_ERROR_NONE) {
 		serial_log("Failed to initialise SD");
 		signal_error(ERROR_SD_INIT);
 	}
