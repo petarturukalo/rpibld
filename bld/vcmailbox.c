@@ -2,6 +2,7 @@
 #include "mmio.h"
 #include "help.h"
 #include "heap.h"
+#include "debug.h"
 
 enum vcmailbox_register {
 	MBOX0_READ,
@@ -213,18 +214,28 @@ static enum vcmailbox_error return_tag_responses(struct property_buffer *prop,
 {
 	struct tag *tag = (struct tag *)&prop->tags;
 	struct tag_request *req = tag_requests;
-	int i = 0;
+	int resp_ret_sz, i = 0;
 
 	/* Will stop at the zeroed "end tag" marker. */
 	for (; tag->id; ++req, ++i) {
 		/* Validation. */
-		if (tag->id != req->id)
+		if (tag->id != req->id) {
+			serial_log("Vcmailbox error: requested tag %08x but response is tag %08x",
+				   req->id, tag->id);
 			/* Or got a response from a tag that wasn't supposed to be there. */
 			return VCMBOX_ERROR_TAG_RESPONSE_OUT_OF_ORDER;
-		if (!(tag->response_code&TAG_RESPONSE_CODE_RESPONSE))
+		}
+		if (!(tag->response_code&TAG_RESPONSE_CODE_RESPONSE)) {
+			serial_log("Vcmailbox error: tag %08x response bit not set: %08x",
+				   tag->id, tag->response_code);
 			return VCMBOX_ERROR_TAG_RESPONSE_BIT_NOT_SET;
-		if (req->ret_sz != (tag->response_code&~(TAG_RESPONSE_CODE_RESPONSE))) 
+		}
+		resp_ret_sz = tag->response_code&~(TAG_RESPONSE_CODE_RESPONSE);
+		if (req->ret_sz != resp_ret_sz)  {
+			serial_log("Vcmailbox error: requested tag %08x expects return size %u but "
+				   "response returned size %u", tag->id, req->ret_sz, resp_ret_sz);
 			return VCMBOX_ERROR_TAG_RESPONSE_SIZE_MISMATCH;
+		}
 
 		if (req->ret_sz) {
 			/* Copy tag response into user's output buffer. */
@@ -233,8 +244,10 @@ static enum vcmailbox_error return_tag_responses(struct property_buffer *prop,
 		/* Jump to next tag. */
 		tag = (struct tag *)((byte_t *)&tag->value_buf + tag->value_bufsz);
 	}
-	if (i != n)
+	if (i != n) {
+		serial_log("Vcmailbox error: requested %u tags but only found %u", n, i);
 		return VCMBOX_ERROR_TAG_RESPONSE_MISSED;
+	}
 	return VCMBOX_ERROR_NONE;
 }
 
@@ -247,16 +260,26 @@ enum vcmailbox_error vcmailbox_request_tags(struct tag_request *tag_requests, in
 
 	vcmailbox_write_message((uint32_t)send_prop, CHANNEL_PROPERTY);
 	recv_msg = vcmailbox_read_message();
-	if (recv_msg&CHANNEL_BITS != CHANNEL_PROPERTY)
+	if (recv_msg&CHANNEL_BITS != CHANNEL_PROPERTY) {
+		serial_log("Vcmailbox error: sent message on channel %u but received "
+			   "message on channel %u", CHANNEL_PROPERTY, recv_msg&CHANNEL_BITS);
 		return VCMBOX_ERROR_RECEIVE_WRONG_CHANNEL;
+	}
 	recv_prop = (struct property_buffer *)(recv_msg&(~CHANNEL_BITS));
 
-	if (recv_prop != send_prop)
+	if (recv_prop != send_prop) {
+		serial_log("Vcmailbox error: address of sent property %08x doesn't match address "
+			   "of received property %08x", send_prop, recv_prop);
 		return VCMBOX_ERROR_BUFFER_RESPONSE_ADDR_MISMATCH;
-	if (!(recv_prop->response_code&PROP_RESPONSE_CODE_RESPONSE)) 
+	}
+	if (!(recv_prop->response_code&PROP_RESPONSE_CODE_RESPONSE))  {
+		serial_log("Vcmailbox error: property response bit not set: %08x", recv_prop->response_code);
 		return VCMBOX_ERROR_BUFFER_RESPONSE_BIT_NOT_SET;
-	if (recv_prop->response_code&PROP_RESPONSE_CODE_ERROR) 
+	}
+	if (recv_prop->response_code&PROP_RESPONSE_CODE_ERROR)  {
+		serial_log("Vcmailbox error: property response signalled error");
 		return VCMBOX_ERROR_PARSING_REQUEST;
+	}
 
 	return return_tag_responses(recv_prop, tag_requests, n);
 }

@@ -47,7 +47,7 @@ static int char_digit_to_int(char digit)
 
 #define DECIMAL_BASE 10
 #define HEX_BASE 16
-static char hex_digits[] = "0123456789abcdef";
+static const char hex_digits[] = "0123456789abcdef";
 
 /*
  * Convert a decimal integer into a string representation
@@ -137,9 +137,8 @@ static bool specifier_supports_field_width(char spec)
  * The last available byte will always be NULL terminated.
  *
  * WARNING if arguments are misused or wrong, e.g. if there's an unsupported 
- * or unfinished conversion specifier in the format string or there's not enough 
- * space in the output buffer to write out a conversion, etc., then this function 
- * fails and signals error ERROR_VSNPRINTF.
+ * or unfinished conversion specifier in the format string, etc., then this 
+ * function fails and signals error ERROR_VSNPRINTF.
  */
 static void Vsnprintf(char *s, int n, char *fmt, va_list ap)
 {
