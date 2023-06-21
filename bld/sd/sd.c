@@ -420,8 +420,11 @@ bool sd_read_blocks_card(byte_t *ram_dest_addr, void *sd_src_lba, int nblks,
 	struct blksizecnt blkszcnt;
 	enum cmd_error error = CMD_ERROR_NONE;
 
-	if (!address_aligned(ram_dest_addr, 4))
+	if (!address_aligned(ram_dest_addr, 4)) {
+		serial_log("SD read error: RAM destination address %08x not 4-byte aligned",
+			   ram_dest_addr);
 		return false;
+	}
 	/* Convert LBA / block unit address to byte unit address for SDSC. */
 	if (!card->sdhc_or_sdxc) 
 		sd_src_lba = (void *)((int)sd_src_lba*READ_BLKSZ);
@@ -443,10 +446,12 @@ bool sd_read_blocks_card(byte_t *ram_dest_addr, void *sd_src_lba, int nblks,
 		/* Multi block transfer. */
 		/* TODO ensure CMD23 is supported? */
 		error = sd_issue_cmd(CMD_IDX_SET_BLOCK_COUNT, nblks);
-		if (error != CMD_ERROR_NONE)
-			return false;
-		error = sd_issue_cmd18(ram_dest_addr, sd_src_lba, nblks);
+		if (error == CMD_ERROR_NONE) 
+			error = sd_issue_cmd18(ram_dest_addr, sd_src_lba, nblks);
 	}
+	if (error != CMD_ERROR_NONE) 
+		serial_log("SD read error: RAM dest addr %08x, SD src lba %08x, number "
+			   "of blocks %u", ram_dest_addr, sd_src_lba, nblks);
 	return error == CMD_ERROR_NONE;
 }
 
