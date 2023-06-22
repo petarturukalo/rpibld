@@ -48,7 +48,7 @@ static struct periph_access uart_access = {
 static void uart_set_baudrate(int baudrate)
 {
 	/*
-	 * The value set in the baudrate is calculated by rearranging
+	 * The value set in the baudrate register is calculated by rearranging
 	 * the baudrate equation in section '2.2.1. Mini UART implementation details'
 	 * from the BCM2711 datasheet.
 	 *

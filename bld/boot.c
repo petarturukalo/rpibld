@@ -61,6 +61,42 @@
 #define ZIMAGE_MAGIC_OFF 0x24
 
 /*
+ * Enable interrupts and initialise peripherals.
+ */
+static void init_peripherals(void)
+{
+	enum sd_init_error error;
+
+	enable_interrupts();
+	ic_enable_interrupts();
+	uart_init();
+	serial_log("Bootloader started: enabled interrupts and mini UART");
+
+	error = sd_init();
+	if (error != SD_INIT_ERROR_NONE) {
+		serial_log("Failed to initialise SD");
+		signal_error(ERROR_SD_INIT);
+	}
+}
+
+/*
+ * Disable interrupts and reset the peripherals initialised in init_peripherals().
+ * This is required to boot the kernel (TODO confirm).
+ */
+static void reset_peripherals(void)
+{
+	 /* TODO test which of the below is actually needed to boot the kernel */
+	if (!sd_reset()) {
+		serial_log("Error: failed to reset SD");
+		signal_error(ERROR_SD_RESET);
+	}
+	/* Note the mini UART isn't reset so the kernel can use it as a serial console. */
+	serial_log("Disabling interrupts");
+	ic_disable_interrupts();
+	disable_interrupts();
+}
+
+/*
  * Load MBR from first block on SD card into RAM.
  * Return the start address of the MBR in RAM on success.
  */
@@ -196,41 +232,12 @@ static void load_image_items(uint32_t img_part_lba)
 	item = load_item(ITEM_ID_END, heap_get_base_address(), (void *)item_lba);
 }
 
-/*
- * Entry point to the C code, the function branched to when switching from 
- * the assembly init code to C.
- */
-void c_entry(void)
+static void boot_kernel(void)
 {
-	enum sd_init_error error;
-	byte_t *mbr_base_addr;
-	uint32_t img_part_lba;
-
-	enable_interrupts();
-	ic_enable_interrupts();
-	uart_init();
-	serial_log("Bootloader started: enabled interrupts and mini UART");
-
-	error = sd_init();
-	if (error != SD_INIT_ERROR_NONE) {
-		serial_log("Failed to initialise SD");
-		signal_error(ERROR_SD_INIT);
-	}
-	mbr_base_addr = load_mbr();
-	img_part_lba = load_image_head(mbr_base_addr);
-	load_image_items(img_part_lba);
-
-	/* Reset CPU and peripherals to the state required to boot the kernel. */
-	// TODO test which of below is actually needed
-	if (!sd_reset()) {
-		serial_log("Error: failed to reset SD");
-		signal_error(ERROR_SD_RESET);
-	}
-	serial_log("Disabling interrupts and jumping to kernel...");
-	ic_disable_interrupts();
-	disable_interrupts();
 	// TODO move back to hypervisor?
-
+	// TODO explain this fn?
+	serial_log("Jumping to the kernel...");
+	
 	/* 
 	 * Load addresses into non-scratch registers r4, r5 before using 
 	 * scratch registers r1, r2, r3 because compilation overwrites 
@@ -265,9 +272,21 @@ void c_entry(void)
 		/*__asm__("hvc #0\n\t" */
 		:
 		: "r" (DTB_RAM_ADDR), "r" (KERN_RAM_ADDR));
+}
 
-	// NOTE disabled interrupts so signal_error() won't work
-	// TODO rm
-	signal_error(12);
-	__asm__("wfi");
+/*
+ * Entry point to the C code, the function branched to when switching from 
+ * the assembly init code to C.
+ */
+void c_entry(void)
+{
+	byte_t *mbr_base_addr;
+	uint32_t img_part_lba;
+
+	init_peripherals();
+	mbr_base_addr = load_mbr();
+	img_part_lba = load_image_head(mbr_base_addr);
+	load_image_items(img_part_lba);
+	reset_peripherals();
+	boot_kernel();
 }
