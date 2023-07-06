@@ -1,6 +1,6 @@
 /*
  * The legacy interrupt controller.
- * Enabled if enable_gic=0 in config.txt.
+ * Usable only if enable_gic=0 in config.txt.
  */
 #ifndef IC_H
 #define IC_H

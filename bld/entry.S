@@ -1,4 +1,23 @@
 /*
+ * Entry point to the bootloader. 
+ */
+#include "addrmap.h"
+
+/* Current program status register fields. */
+#define CPSR_MODE     0b11111  /* Mask. */
+#define CPSR_MODE_IRQ 0b10010
+#define CPSR_MODE_SVC 0b10011
+
+#define VBAR 0x00  /* Vector base address. */
+
+.extern c_entry
+.extern ic_irq_exception_handler
+
+.global asm_entry
+.global vector_table
+.global vector_table_pool_end
+
+/*
  * Use .init section here and not .text so that this assembly code is 
  * guaranteed to be placed at the very start of the final bootloader binary
  * as specified in the linker script. If this were to use .text instead, 
@@ -8,114 +27,70 @@
  */
 .section .init
 
-.global c_entry
-.global ic_irq_exception_handler
-
-/* Same as boot.c:KERN_RAM_ADDR. */
-// TODO how does kernel head.S use .c #defines?
-.equ KERN_RAM_ADDR, 0x2000000
+/*
+ * Set the stack address for a non-secure EL1 mode. 
+ * The processor will remain in the chosen mode as a side effect.
+ */
+.macro set_stack, cpsr_mode, stack_start_addr
+	mrs r0, cpsr
+	bic r0, r0, #CPSR_MODE  /* Zero mode bits. */
+	/* Can freely move between EL1 without needing an exception return. */
+	orr r0, r0, \cpsr_mode  
+	msr cpsr, r0
+	mov sp, \stack_start_addr
+.endm
 
 /*
- * The addresses that the IRQ and supervisor (SVC) mode stacks start at.
- * Each has 1 MiB of stack space. They are 4-byte aligned as they won't 
- * work if not 4-byte aligned.
+ * Only the primary core executes this. The secondary cores are spinning in the ARM
+ * stub waiting to receive the kernel secondary core start address in its clear ARM mailbox
+ * 3 from this primary core eventually executing the Linux kernel SMP code. 
+ *
+ * The spin code will not be trampled by the kernel because it is in the first 4 KiB of RAM,
+ * which has been marked as reserved memory in the device tree.
+ *
+ * What I thought would be an issue, but turns out not to be an issue, is that these secondary
+ * cores will not have the correct device tree blob address in register r2 when booting ARM Linux,
+ * since this bootloader is what loads it. It's not an issue however because Linux SMP still boots 
+ * successfully, presumably because the kernel already knows where the DTB is from the primary core 
+ * (note, from debugging, the secondary cores jump into the kernel code with r2 set to 0).
  */
-.equ IRQ_STACK_START_ADDR, 0x1f00000  /* 31 MiB. */
-.equ SVC_STACK_START_ADDR, 0x1e00000  /* 30 MiB. */
-
-/* The first 5 bits of the CPSR register, bits 4:0, make up the mode field. */
-.equ CPSR_MODE_BITS, 0b11111
-.equ CPSR_IRQ_MODE,  0b10010
-.equ CPSR_SVC_MODE,  0b10011
-
-/* Offset to exception handler vectors from very start of memory. */
-/* TODO remove hyp code here if find don't need it */
-.equ HYP_VECTOR_OFFSET, 0x14
-.equ IRQ_VECTOR_OFFSET, 0x18
-
-.global asm_entry
 asm_entry:
-	/* 
-	 * Only let the first of 4 cores/CPUs, core with CPU ID 0, continue execution.
-	 * All other cores are left idle.
-	 * TODO why, does it ruin setting registers?
-	 * TODO can't get another core with CPU ID > 0 to run and call c_entry,
-	 *	are they put in a spin loop by the firmware? 
-	 * TODO either enable this if certain it's needed or remove it
-	 * TODO if removed comment assumption made about cores here
-	 */
-	//mrc p15, 0, r0, c0, c0, 5  /* Read multiprocessor affinity register into r0. */
-	//ands r0, r0, #0b11  /* Compare on CPU ID field. */
-	//bne loop
+	/* Set hypervisor vector base address (HVBAR). */
+	mov r0, #VBAR
+	mcr p15, 4, r0, c12, c0, 0
 
 	/*
-	 * Switch from hypervisor mode (the mode that was booted into) to supervisor (SVC) mode. 
-	 * If this isn't done then the IRQ exception is handled in hypervisor mode when it should
-	 * be handled in IRQ mode.
+	 * Drop from non-secure hypervisor mode to non-secure supervisor mode. 
+	 * The primary core will return to hypervisor mode when it boots the kernel.
 	 */
 	mrs r0, cpsr
-	bic r0, #CPSR_MODE_BITS  /* Zero mode bits. */
-	mov r1, r0
-	orr r1, #CPSR_SVC_MODE  /* Set mode to supervisor. */
-	msr spsr_hyp, r1
+	bic r0, r0, #CPSR_MODE      /* Zero mode bits. */
+	orr r0, r0, #CPSR_MODE_SVC  /* Set mode to supervisor. */
+	msr spsr_hyp, r0            /* Hyp eret loads spsr from spsr_hyp. */
+	msr elr_hyp, pc		    /* Return to instruction after eret. */
+	eret			    /* Hyp substitutes eret with load pc from elr_hyp. */
+
 	/* 
-	 * The program counter is 8 bytes ahead of the current instruction, so this 
-	 * will have supervisor mode execution continue at the instruction directly 
-	 * after eret.
+	 * Set up stacks for the C code. 
+	 * Separate stacks are required for both IRQ and supervisor mode.
 	 */
-	msr elr_hyp, pc
-	eret
-
-	/*
-	 * Supervisor mode execution starts here. Now that we're out of the privilege 
-	 * level 2 (PL2) hypervisor mode we can freely switch between the PL1 modes.
-	 *
-	 * Set up the stacks for use by the C code. Separate stacks are required for both
-	 * IRQ mode and supervisor mode. First the IRQ mode stack is set.
-	 */
-	mov r1, r0
-	orr r1, #CPSR_IRQ_MODE  /* Set mode to IRQ. */
-	msr cpsr, r1
-	mov sp, #IRQ_STACK_START_ADDR
-	
-	/* Set the supervisor mode stack. */
-	mov r1, r0
-	orr r1, #CPSR_SVC_MODE  /* Set mode back to supervisor. */
-	msr cpsr, r1
-	mov sp, #SVC_STACK_START_ADDR
-
-	
-	/* Set exception vectors in the vector table. */
-	/*
-	 * Set the hypervisor exception vector to an instruction that will jump
-	 * to the kernel. TODO explain why
-	 */
-	ldr r0, hyp_exception_vector
-	ldr r1, =HYP_VECTOR_OFFSET
-	str r0, [r1]
-
-	/*
-	 * Set the exception handler vector for the IRQ exception in the vector table
-	 * to an instruction that will branch to irq_exception_handler.
-	 */
-	ldr r0, irq_exception_vector
-	ldr r1, =IRQ_VECTOR_OFFSET
-	str r0, [r1]
-	/*
-	 * After assembly the instruction at irq_exception_vector will have its label operand replaced with
-	 * a program counter relative address, expecting the operand to be 4 bytes after the instruction itself,
-	 * so make sure to copy this dependency to 4 bytes after the IRQ exception vector.
-	 * This will overwrite the FIQ exception vector, but that's okay because we won't be using any FIQs.
-	 */
-	ldr r0, addr_irq_exception_handler
-	add r1, r1, #4
-	str r0, [r1]
+	set_stack #CPSR_MODE_IRQ, #IRQ_STACK_START_ADDR
+	set_stack #CPSR_MODE_SVC, #SVC_STACK_START_ADDR
 
 	bl c_entry
 
-loop:
-	// TODO power off instead?
-	b loop
+
+/*
+ * Set r0, r1, r2 required to boot ARM Linux, and then boot it.
+ * 
+ * @r3: kernel address to jump to
+ */
+_boot_kernel:
+	mov r0, #0
+	/* Set machine type to all ones to not match a type since it's determined by device tree. */
+	mov r1, #~0  
+	mov r2, #DTB_RAM_ADDR
+	bx r3
 
 
 /*
@@ -142,11 +117,21 @@ irq_exception_handler:
 	 */
 	subs pc, lr, #4
 
-hyp_exception_vector:
-	ldr pc, =KERN_RAM_ADDR
 
-irq_exception_vector:
-	ldr pc, addr_irq_exception_handler
+/* So the vector table's PC-relative dependencies are immediately after it. */
+.pool
 
-addr_irq_exception_handler: .word irq_exception_handler
+/* Vector table that will be moved to the very start of RAM (address 0x00). */
+vector_table:
+	nop				/* 0x00: reset. */
+	nop				/* 0x04: undefined instruction. */
+	nop				/* 0x08: supervisor / SMC. */
+	nop				/* 0x0c: prefetch abort. */
+	nop				/* 0x10: data abort. */
+	ldr pc, =_boot_kernel		/* 0x14: hypervisor. */
+	ldr pc, =irq_exception_handler	/* 0x18: IRQ. */
+	nop				/* 0x1c: FIQ. */
+.pool
+vector_table_pool_end:
+	nop
 

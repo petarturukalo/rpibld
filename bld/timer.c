@@ -1,6 +1,7 @@
 #include "timer.h"
 #include "mmio.h"
 #include "type.h"
+#include "gic.h"
 
 /*
  * Timer channels 0 and 2 are supposedly used by the VPU so only
@@ -82,11 +83,19 @@ void timer_isr(void)
 
 void usleep(int microseconds)
 {
+#if !ENABLE_GIC
+/* Interrupt implementation: */
 	timer_queue_irq(microseconds);
 	/* Can only be woken up from a timer IRQ and not a different peripheral. */
 	do {
 		__asm__("wfi");
 	} while (!queued_timer_irq_serviced);
+#else
+/* Polled implementation: */
+	int end_ticks = register_get(&timer_access, CLO)+microseconds;
+	while (register_get(&timer_access, CLO) < end_ticks)
+		;
+#endif
 }
 
 void sleep(int milliseconds)

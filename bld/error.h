@@ -2,6 +2,7 @@
 #define ERROR_R
 
 /*
+ * @ERROR_SECONDARY_CORE: error relocating a secondary core
  * @ERROR_VCMAILBOX: error using the VideoCore mailbox
  * @ERROR_VC_NOT_INIT_MMC: the VideoCore firmware didn't intialise
  *	MMC as expected (see mmc_assert_vc_init() for more info)
@@ -19,21 +20,20 @@
  */
 enum error_code {
 	/* Ensure these are set to an explicit value to know how many times it beeps. */
-	ERROR_VCMAILBOX         = 1,
-	ERROR_VC_NOT_INIT_MMC   = 2,
-	ERROR_INFINITE_LOOP     = 3,
-	ERROR_VSNPRINTF         = 4,
-	ERROR_SD_INIT           = 5,
-	ERROR_SD_READ           = 6,
-	ERROR_NO_MBR_MAGIC      = 7,
-	ERROR_INVALID_PARTITION = 8,
-	ERROR_NO_IMAGE_MAGIC    = 9,
-	ERROR_IMAGE_OVERFLOW    = 10,
-	ERROR_IMAGE_CONTENTS    = 11,
-	ERROR_KERN_OVERFLOW     = 12,
-	ERROR_SD_RESET          = 13
-// TODO make a note that if it hangs and there's no LED signalling then could be a 
-// problem with the kernel/dtb after jumping to it
+	ERROR_SECONDARY_CORE    = 1,
+	ERROR_VCMAILBOX         = 2,
+	ERROR_VC_NOT_INIT_MMC   = 3,
+	ERROR_INFINITE_LOOP     = 4,
+	ERROR_VSNPRINTF         = 5,
+	ERROR_SD_INIT           = 6,
+	ERROR_SD_READ           = 7,
+	ERROR_NO_MBR_MAGIC      = 8,
+	ERROR_INVALID_PARTITION = 9,
+	ERROR_NO_IMAGE_MAGIC    = 10,
+	ERROR_IMAGE_OVERFLOW    = 11,
+	ERROR_IMAGE_CONTENTS    = 12,
+	ERROR_KERN_OVERFLOW     = 13,
+	ERROR_SD_RESET          = 14
 };
 
 /*

@@ -6,7 +6,7 @@
  *   its affect on bootloader is that i don't need to do half the things already
  *   done in my uart_init(). if say need it here then put a comment in mini_uart()
  *   implementation saying most of it seems to be covered by firmware when doing enable_uart=1.
- *   TODO test whether
+ *   TODO test whether. don't think needed anymore, just clock_freq, since i enable it
  * - clock_freq=250 and clock_freq_min=250 to fix the VPU/core clock to 250 MHz.
  *   Without this the clock rate is unstable and the mini UART doesn't work.
  *   From testing also, without this the VPU clock rate is 200 MHz, but fixing

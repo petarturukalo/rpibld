@@ -21,5 +21,4 @@ typedef int bool;
  */
 #define cast_bitfields(bitfield_struct, integral_type) (*((integral_type *)&bitfield_struct))
 
-
 #endif

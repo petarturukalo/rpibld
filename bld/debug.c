@@ -15,7 +15,8 @@ int Strlen(char *s)
 }
 
 /*
- * Like the regular strncpy() except returns the bytes copied instead.
+ * Like the regular strncpy() except returns the number of bytes 
+ * copied instead.
  */
 static int Strncpy(char *dst, char *src, int n)
 {

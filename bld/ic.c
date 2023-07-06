@@ -1,7 +1,6 @@
 #include "ic.h"
 #include "mmio.h"
 #include "timer.h"
-#include "int.h"
 #include "sd/cmd.h"
 
 enum arm_local_register {
@@ -64,6 +63,13 @@ static struct periph_access armc_access = {
  */
 #define IRQ_INT63_32_EMMC2 0x40000000
 
+/* Interrupt request. */
+enum irq {
+	IRQ_UNIMPLEMENTED,
+	/* VideoCore interrupts. */
+	IRQ_VC_TIMER1,
+	IRQ_VC_EMMC2
+};
 
 void ic_enable_interrupts(void)
 {

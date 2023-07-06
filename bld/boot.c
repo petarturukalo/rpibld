@@ -1,4 +1,3 @@
-#include "int.h"
 #include "ic.h"
 #include "error.h"
 #include "mbr.h"
@@ -12,53 +11,23 @@
 #include "help.h" // TODO rm
 #include "tag.h" // TODO rm
 #include "uart.h"
-
-/* Addresses in RAM that the kernel / device tree blob are loaded to. */
-/* 32 MiB. */
-#define KERN_RAM_ADDR 0x2000000
-/* 128 MiB. */
-#define DTB_RAM_ADDR  0x8000000
-/*
- * The following diagram illustrates how the RAM is sectioned
- * for use by the bootloader. Sections are delimited by borders:
- * a hyphenated border (----) marks a hard border where a section
- * stops, and a dotted border (....) marks a soft border where a
- * section can grow into (i.e. it has a variable or unknown size).
- *
- *         +------------+
- *         |            |
- *         |            |
- *         |............|
- *         |    heap    |
- * 256 MiB +------------+
- *         |            |
- *         |            |
- *         |............|
- *         |    dtb     |
- * 128 MiB +------------+
- *         |            |
- *         |            |
- *         |............|
- *         |   kernel   |
- *  32 MiB +------------+
- *         |            |
- *  31 MiB +------------+
- *         | irq stack  |
- *  30 MiB +------------+
- *         | svc stack  |
- *         |............|
- *         |            |
- *         |............|
- *         | bootloader |
- *  32 KiB +------------+
- *         |            |
- *         +------------+
- */
+#include "addrmap.h"
+#include "int.h"
+#include "gic.h"
 
 #define DTB_MAGIC 0xd00dfeed
 /* Kernel zImage magic number and offset to it from start of the zImage. */
 #define ZIMAGE_MAGIC 0x016F2818
 #define ZIMAGE_MAGIC_OFF 0x24
+
+/* Assembly labels. */
+extern void vector_table(void);
+extern void vector_table_pool_end(void);
+
+static void install_vector_table(void)
+{
+	mcopy(vector_table, (byte_t *)0x00, vector_table_pool_end-vector_table);
+}
 
 /*
  * Enable interrupts and initialise peripherals.
@@ -67,10 +36,13 @@ static void init_peripherals(void)
 {
 	enum sd_init_error error;
 
+	uart_init();
+	serial_log("Bootloader started: enabled mini UART");
+#if !ENABLE_GIC
 	enable_interrupts();
 	ic_enable_interrupts();
-	uart_init();
-	serial_log("Bootloader started: enabled interrupts and mini UART");
+	serial_log("Enabled interrupts");
+#endif
 
 	error = sd_init();
 	if (error != SD_INIT_ERROR_NONE) {
@@ -85,15 +57,17 @@ static void init_peripherals(void)
  */
 static void reset_peripherals(void)
 {
-	 /* TODO test which of the below is actually needed to boot the kernel */
+	 /* TODO test which of the below is actually needed to boot the kernel. doesn't matter? */
 	if (!sd_reset()) {
 		serial_log("Error: failed to reset SD");
 		signal_error(ERROR_SD_RESET);
 	}
 	/* Note the mini UART isn't reset so the kernel can use it as a serial console. */
-	serial_log("Disabling interrupts");
+#if !ENABLE_GIC
 	ic_disable_interrupts();
 	disable_interrupts();
+	serial_log("Disabled interrupts");
+#endif
 }
 
 /*
@@ -234,44 +208,10 @@ static void load_image_items(uint32_t img_part_lba)
 
 static void boot_kernel(void)
 {
-	// TODO move back to hypervisor?
-	// TODO explain this fn?
-	serial_log("Jumping to the kernel...");
+	serial_log("Jumping to kernel...");
 	
-	/* 
-	 * Load addresses into non-scratch registers r4, r5 before using 
-	 * scratch registers r1, r2, r3 because compilation overwrites 
-	 * the scratch registers when loading the addresses, e.g. instruction
-	 *
-	 *	mov r4, %0
-	 *
-	 * becomes
-	 *
-	 *	mov r3, <immediate>
-	 *	mov r4, r3
-	 *
-	 * after compilation, where <immediate> is the value substituted into %0.
-	 */
-	__asm__("mov r4, %0\n\t"  /* Store device tree blob in r4. */
-		"mov r5, %1\n\t"  /* Store kernel in r5. */
-		/* Set the values of registers r0, r1, r2 required to boot the kernel. */
-		"mov r0, #0\n\t"
-		/* 
-		 * r1 is machine type and is set to ~0 (all 1s) to not match a 
-		 * machine because it's determined by the device tree instead.
-		 */
-		// TODO 3138 or ~0? 3138 is what the GPU firmware put in r1
-		/*"mvn r1, #0\n\t"*/
-		/* TODO this comes from https://www.arm.linux.org.uk/developer/machines/ */
-		"mov r1, #3138\n\t"
-		/* Set r2 to address of device tree blob. */
-		"mov r2, r4\n\t"
-		/* Jump to kernel. */
-		"bx r5"
-		// TODO can't get the hyp exception vector to execute */
-		/*__asm__("hvc #0\n\t" */
-		:
-		: "r" (DTB_RAM_ADDR), "r" (KERN_RAM_ADDR));
+	__asm__("mov r3, #" MSTRFY(KERN_RAM_ADDR) "\n\t"
+		"hvc #0");  /* Go to hypervisor mode which will execute _boot_kernel. */
 }
 
 /*
@@ -283,6 +223,7 @@ void c_entry(void)
 	byte_t *mbr_base_addr;
 	uint32_t img_part_lba;
 
+	install_vector_table();
 	init_peripherals();
 	mbr_base_addr = load_mbr();
 	img_part_lba = load_image_head(mbr_base_addr);

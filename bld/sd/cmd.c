@@ -506,15 +506,13 @@ enum cmd_error sd_issue_read_cmd(enum cmd_index idx, byte_t *ram_dest_addr, void
 		// assumption: don't need barriers on access because only mixing
 		// access with INTERRUPT reg that will have barriers used in the 
 		// register_get() and friends fns
-		__asm__("mov r6, %0\n\t"
+		__asm__("mov r6, #" MSTRFY(READ_BLKSZ) "\n\t"
 			"read_data:\n\t"
 			"ldr r7, [r4]\n\t"
 			"str r7, [r5]\n\t"
 			"add r5, r5, #4\n\t"
 			"subs r6, r6, #4\n\t"
-			"bne read_data"
-			:
-			: "r" (READ_BLKSZ));
+			"bne read_data");
 	}
 	error = sd_wait_for_interrupt(INTERRUPT_TRANSFER_COMPLETE);
 sd_issue_read_cmd_cleanup:

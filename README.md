@@ -1,6 +1,7 @@
 # Description
 
-A fourth stage bootloader for the Raspberry Pi 4 Model B 2GB. 
+A fourth stage bootloader for the Raspberry Pi 4 Model B, for booting 32-bit 
+ARM Linux from a SD card.
 
 
 # Bootloader Stages
@@ -19,12 +20,14 @@ secondary storage. It loads the Linux kernel `/boot/kernel{7l,8}.img` and
 device tree from secondary storage into RAM, and switches execution to the 
 kernel.
 
-This bootloader program is implemented as a (redundant) fourth stage bootloader,
-renamed to `/boot/kernel7l.img` so it is loaded by the third stage bootloader instead
-of the kernel. Although this is implemented as a redundant step in the boot sequence,
-it is done because the first three bootloader stages are run on the VideoCore/VPU, 
-while the loaded "kernel" is run on the ARM CPU, and there is far more official 
-documentation available for the ARM CPU than the VPU.
+This bootloader program is implemented as a (redundant) fourth stage bootloader, installed
+to `/boot/bootloader` and property `kernel=bootloader` set in `/boot/config.txt` for the 
+third stage bootloader to load it instead of the kernel. It could have just been installed 
+to `/boot/kernel7l.img` (`kernel7l.img` and not `kernel8.img` because this bootloader is 32-bit,
+not 64-bit) but renaming it to `bootloader` makes for less confusion. Although this is implemented 
+as a redundant step in the boot sequence, it is done because the first three bootloader stages are 
+run on the VideoCore/VPU, while the loaded "kernel" is run on the ARM CPU, and there is far more 
+official documentation available for the ARM CPU than the VPU.
 
 For more info see the following links.
 * https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#raspberry-pi-4-boot-flow
@@ -45,26 +48,27 @@ stored as raw bytes at the start of the partition.
 Compile the imager with `make imager`. Run it with help arguments `-h` or `--help` to
 see how to use it to image a partition.
 
-TODO mention where to fin default files to make image out of. also mention default provided
-dtb assumes root file system is on 2nd partition in its boot args. mention which raspbian
-pulled them from 
+TODO mention where to find default files to make image out of (TODO add image files section?). 
+also mention default provided dtb assumes root file system is on 2nd partition in its boot args. 
+mention which raspbian pulled them from and tested to work with
 
 ## Bootloader
 
 To let the bootloader know which partition to look for the image on, before compiling, in 
 the `Makefile` set the `image_partition` variable to the partition number of the image 
-partition (e.g. 2).
+partition (e.g. 3).
 
 Cross compile the bootloader with `make bootloader`.
 TODO 
 - minimum set of files needed on the /boot part of the SD card. 
-- install by moving the bootloader to kernel7l.img on the SD card's boot partition
+- install by moving the bootloader to /boot/bootloader on the SD card's boot partition
 - explain don't need to cross compile if doing this on the rpi itself. 
 	explain which makefile variable to set to cross compile
 
-## error signalling?
+## Troubleshooting
 
-TODO explain LED and mini UART debug serial 
+TODO troubleshooting bootloader: explain LED and mini UART debug serial (only transmit)
+TODO explain kernel troubleshooting: earlycon, kconfig debugs (retest which are actually needed), etc.
 
 
 # Resources
@@ -80,6 +84,7 @@ memory-mapped register base addresses not available in the BCM2711 datasheet, cl
 etc. To get the source download the linked repo and convert the Raspberry Pi 4 Model B 
 device tree blob to its source with device tree compiler command `dtc -I dtb -O dts boot/bcm2711-rpi-4-b.dtb`. 
 Note the addresses in the source are legacy master addresses (refer BCM2711 datasheet for more info).
+* https://elinux.org/BCM2835_datasheet_errata#p12: fixes of errors in BCM2711 datasheet mini UART documentation
 
 **ARM CPU**
 * [ARM Cortex-A Series Programmer's Guide for ARMv7-A](https://developer.arm.com/documentation/den0013/d):
@@ -90,6 +95,8 @@ instruction reference
 the ARM processor running the bootloader. Contains helpful information on system registers.
 * [ARM Developer Suite Developer Guide](https://developer.arm.com/documentation/dui0056/d):
 has extra info on interrupt handlers
+* [AAPCS arm procedure call standard](https://github.com/ARM-software/abi-aa/blob/844a79fd4c77252a11342709e3b27b2c9f590cf1/aapcs32/aapcs32.rst): 
+helpful to know which registers are safe to use when writing assembly that will be mixed with compiled C
 
 **VideoCore Mailboxes**
 Official documentation on the VideoCore mailboxes is scarce. Although not all "official" the following 
@@ -111,17 +118,29 @@ the host controller specification which the SD peripheral implements
 * [SD Physical Layer Specification Version 3.01](https://www.sdcard.org/downloads/pls/archives/):
 the physical layer specification which the SD peripheral implements
 
-TODO ADD THIS TO THE ARM CPU SECTION: AAPCS arm procedure call standard https://github.com/ARM-software/abi-aa/blob/844a79fd4c77252a11342709e3b27b2c9f590cf1/aapcs32/aapcs32.rst - helpful to know which registers are safe to use when writing assembly that will be mixed with compiled C
-TODO https://elinux.org/BCM2835_datasheet_errata#p12 - fixes of errors in mini UART doc of BCM2711 datasheet
+**Other**
+* [Booting ARM Linux](https://www.kernel.org/doc/html/latest/arm/booting.html): set up required to boot ARM Linux
+* [ARM stub](https://github.com/raspberrypi/tools/blob/master/armstubs/armstub7.S): code firmware places at address 
+0x0 start of RAM, which is executed before my bootloader
+* [CoreLink GIC-400 Generic Interrupt Controller Technical Reference Manual](https://developer.arm.com/documentation/ddi0471/latest/): 
+useful in understanding the ARM stub GIC code
+* [ARM Generic Interrupt Controller Architecture Specification](https://developer.arm.com/documentation/ihi0069/h/):
+contains definitions of register fields not present in the GIC-400 Technical Reference Manual
 
 
 TODO
+
+PUT BELOW 2 REFS IN SECTION ON GETTING THE ZIMAGE AND DTB
+* [Raspberry Pi Linux kernel](https://github.com/raspberrypi/linux)
+* [Building Linux](https://www.raspberrypi.com/documentation/computers/linux_kernel.html#building-the-kernel)
+
+- fix up ARM stub explanation
 - as find and use more resources add them to resources section
 - mention minimum /boot partition files like config.txt needed 
 	(see uncommitted boot-part dir; provide committed default files)
 - mention only works with sd not usb
-- add "booting ARM linux" instructions to resources? (after find it's needed)
-https://www.kernel.org/doc/html/latest/arm/booting.html
-http://www.simtec.co.uk/products/SWLINUX/files/booting_article.html#d0e309
 - add troubleshooting section on selecting a cmdline?
+- mention need to have device driver modules installed matching version of kernel using 
+- device tree needs specific settings in order to boot (here's one i prepared earlier); see
+doc/boot/dt.txt
 
