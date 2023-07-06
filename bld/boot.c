@@ -2,14 +2,10 @@
 #include "error.h"
 #include "mbr.h"
 #include "img.h"
-#include "sd/sd.h" // TODO rm unless keep like this?
-#include "sd/cmd.h" // TODO rm unless keep like this?
-#include "led.h" // TODO rm
-#include "debug.h" // TODO rm
-#include "timer.h" // TODO rm
-#include "heap.h" // TODO rm
-#include "help.h" // TODO rm
-#include "tag.h" // TODO rm
+#include "sd/sd.h"
+#include "debug.h"
+#include "heap.h"
+#include "help.h"
 #include "uart.h"
 #include "addrmap.h"
 #include "int.h"
@@ -29,9 +25,7 @@ static void install_vector_table(void)
 	mcopy(vector_table, (byte_t *)0x00, vector_table_pool_end-vector_table);
 }
 
-/*
- * Enable interrupts and initialise peripherals.
- */
+/* Enable interrupts and initialise peripherals. */
 static void init_peripherals(void)
 {
 	enum sd_init_error error;
@@ -51,13 +45,9 @@ static void init_peripherals(void)
 	}
 }
 
-/*
- * Disable interrupts and reset the peripherals initialised in init_peripherals().
- * This is required to boot the kernel (TODO confirm).
- */
+/* Disable interrupts and reset the peripherals initialised in init_peripherals(). */
 static void reset_peripherals(void)
 {
-	 /* TODO test which of the below is actually needed to boot the kernel. doesn't matter? */
 	if (!sd_reset()) {
 		serial_log("Error: failed to reset SD");
 		signal_error(ERROR_SD_RESET);

@@ -3,7 +3,6 @@
 #include "../help.h"
 #include "../timer.h"
 #include "../debug.h"
-#include "../error.h"// TODO rm
 
 /*
  * Arguments used by some addressed commands requiring
