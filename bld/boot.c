@@ -20,9 +20,10 @@
 extern void vector_table(void);
 extern void vector_table_pool_end(void);
 
+/* Move vector table to very start of RAM (address 0x0) to set up exception vectors/handlers. */
 static void install_vector_table(void)
 {
-	mcopy(vector_table, (byte_t *)0x00, vector_table_pool_end-vector_table);
+	mcopy(vector_table, (byte_t *)0x0, vector_table_pool_end-vector_table);
 }
 
 /* Enable interrupts and initialise peripherals. */

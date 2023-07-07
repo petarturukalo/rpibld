@@ -1,0 +1,5 @@
+enable_gic=1
+core_freq=250
+core_freq_min=250
+arm_64bit=0
+kernel=bootloader

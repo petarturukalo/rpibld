@@ -45,10 +45,7 @@ clean:
 	find build -name '*.o' -print -delete
 	rm build/bootloader.elf bootloader imager
 
-# TODO rm install and uninstall - just used to automate testing
 install:
-	sudo cp -v bootloader mnt-boot
-
-uninstall:
-	sudo rm -v mnt-boot/bootloader
+	sudo cp -fv data/boot/* mnt-boot
+	sudo cp -fv bootloader mnt-boot
 

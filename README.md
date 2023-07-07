@@ -48,22 +48,59 @@ stored as raw bytes at the start of the partition.
 Compile the imager with `make imager`. Run it with help arguments `-h` or `--help` to
 see how to use it to image a partition.
 
-TODO mention where to find default files to make image out of (TODO add image files section?). 
-also mention default provided dtb assumes root file system is on 2nd partition in its boot args. 
-mention which raspbian pulled them from and tested to work with
+## Image Files
+
+The imager takes a 32-bit Linux kernel ARM zImage and device tree blob (DTB) files as parameters.
+See [1] for building these files yourself.
+
+Note the default built DTB is incomplete and can't be used to boot successfully. This is because 
+it's expected this DTB is loaded by the Raspberry Pi firmware, which will modify it and complete its
+missing/empty properties before executing the kernel. However, because this bootloader is what loads 
+the DTB instead of the firmware, this modification is not done. To work around this, the modifications
+must be made to the device tree sources before compilation.
+
+The following lists the modifications required of the device tree sources in order for Linux to boot 
+successfully.
+
+1. The booted kernel uses the commandline parameters specified in the `bootargs` property of the device tree
+`/chosen` node, and ignores the parameters given in the kernel config `CONFIG_CMDLINE`. As is typical
+of a kernel commandline, it must specify the partition of the root filesystem, e.g. a minimal commandline
+specifying partition 2 as the root filesystem would be something like 
+`8250.nr_uarts=1 console=ttyS0,115200 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 fsck.repair=yes rootwait`.
+See [2] for a complete list and explanation of the kernel commandline parameters.
+2. The `reg` property of the `memory` node is empty and must be filled. I use 
+`reg = <0x00 0x00 0x3b400000 0x00 0x40000000 0x40000000>;`, which I got by looking at the device tree
+of a running Linux with decompilation command `dtc -I fs /sys/firmware/devicetree/base`. Note
+my Raspberry Pi is a 2 GB version: I have not tested this on a Pi with a different size of RAM, 
+but it's very likely the value of this `reg` property will be different depending on the size of 
+the Pi's RAM (2, 4, or 8 GB).
+
+If you don't want to go through all of these steps, I have provided a ready DTB/kernel in `data/img` with the 
+modifications listed above, i.e. DTB with kernel commandline specifying root filesystem on partition 2 and
+memory set to 2 GB. Note these were compiled from RPI Linux [3] version 6.1.35; I have observed when 
+there's mismatch in version between kernel and modules, the Pi will not run smoothly, so ensure to install
+modules matching this same version if you see this issue. See [4] for more info on RPI Linux versioning.
+
+[1] https://www.raspberrypi.com/documentation/computers/linux_kernel.html#building-the-kernel
+[2] https://www.kernel.org/doc/html/latest/admin-guide/kernel-parameters.html
+[3] https://github.com/raspberrypi/linux
+[4] https://www.raspberrypi.com/documentation/computers/linux_kernel.html#version-identification
+TODO just make these hyperlinks?
 
 ## Bootloader
 
-To let the bootloader know which partition to look for the image on, before compiling, in 
-the `Makefile` set the `image_partition` variable to the partition number of the image 
+To let the bootloader know which partition to look for the image on, before compiling, 
+set the `image_partition` variable in the `Makefile` to the partition number of the image 
 partition (e.g. 3).
 
-Cross compile the bootloader with `make bootloader`.
-TODO 
-- minimum set of files needed on the /boot part of the SD card. 
-- install by moving the bootloader to /boot/bootloader on the SD card's boot partition
-- explain don't need to cross compile if doing this on the rpi itself. 
-	explain which makefile variable to set to cross compile
+Compile the bootloader with `make bootloader`. To cross compile configure `cross_prefix` in
+the `Makefile` appropriately. 
+
+Install the bootloader on your SD card by first mounting its `/boot` partition on `mnt-boot`,
+and then running `make install`. WARNING this will also install the minimum set of boot files 
+required for the bootloader to run and run successfully, overwriting existing files, e.g. the 
+third stage bootloader / firmware, `start4.elf`, and the `config.txt`. Explanations of the 
+contents of `config.txt` are littered throughout the source.
 
 ## Troubleshooting
 
@@ -121,7 +158,7 @@ the physical layer specification which the SD peripheral implements
 **Other**
 * [Booting ARM Linux](https://www.kernel.org/doc/html/latest/arm/booting.html): set up required to boot ARM Linux
 * [ARM stub](https://github.com/raspberrypi/tools/blob/master/armstubs/armstub7.S): code firmware places at address 
-0x0 start of RAM, which is executed before my bootloader
+0x0 start of RAM, which is executed before this bootloader
 * [CoreLink GIC-400 Generic Interrupt Controller Technical Reference Manual](https://developer.arm.com/documentation/ddi0471/latest/): 
 useful in understanding the ARM stub GIC code
 * [ARM Generic Interrupt Controller Architecture Specification](https://developer.arm.com/documentation/ihi0069/h/):
@@ -132,15 +169,12 @@ TODO
 
 PUT BELOW 2 REFS IN SECTION ON GETTING THE ZIMAGE AND DTB
 * [Raspberry Pi Linux kernel](https://github.com/raspberrypi/linux)
-* [Building Linux](https://www.raspberrypi.com/documentation/computers/linux_kernel.html#building-the-kernel)
+* [Building Linux]()
 
-- fix up ARM stub explanation
-- as find and use more resources add them to resources section
 - mention minimum /boot partition files like config.txt needed 
 	(see uncommitted boot-part dir; provide committed default files)
-- mention only works with sd not usb
 - add troubleshooting section on selecting a cmdline?
 - mention need to have device driver modules installed matching version of kernel using 
 - device tree needs specific settings in order to boot (here's one i prepared earlier); see
 doc/boot/dt.txt
-
+- resolve TODOs

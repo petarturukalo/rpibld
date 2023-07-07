@@ -9,7 +9,7 @@
 #define CPSR_MODE_IRQ 0b10010
 #define CPSR_MODE_SVC 0b10011
 
-#define VBAR 0x00  /* Vector base address. */
+#define VBAR 0x0  /* Vector base address. */
 
 .extern c_entry
 .extern ic_irq_exception_handler
@@ -122,7 +122,7 @@ irq_exception_handler:
 /* So the vector table's PC-relative dependencies are immediately after it. */
 .pool
 
-/* Vector table that will be moved to the very start of RAM (address 0x00). */
+/* Vector table that will be moved to the very start of RAM (address 0x0). */
 vector_table:
 	nop				/* 0x00: reset. */
 	nop				/* 0x04: undefined instruction. */
