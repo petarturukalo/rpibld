@@ -4,6 +4,7 @@
 #include "gpio.h"
 #include "help.h"
 #include "gpio.h"
+#include "bits.h"
 
 enum uart_register {
 	AUX_ENABLES,
@@ -27,23 +28,23 @@ static struct periph_access uart_access = {
 };
 
 /* Auxiliary enables register fields. */
-#define AUX_ENABLES_MINI_UART_ENABLE 0x1
+#define AUX_ENABLES_MINI_UART_ENABLE  BIT(0)
 
 /* Mini UART I/O data register fields. */
 /* Transmit data. */
-#define AUX_MU_IO_REG_TX_DATA 0xff
+#define AUX_MU_IO_REG_TX_DATA  BITS(7, 0)
 
 /* Mini UART line control register fields. */
 /* BCM2711 datasheet is wrong. Need to set bits 1:0 to 0b11 to get 8 data bits. */
-#define AUX_MU_LCR_REG_DATA_SIZE 0x3
+#define AUX_MU_LCR_REG_DATA_SIZE  BITS(1, 0)
 
 /* Mini UART line status register fields. */
 /* Transmitter empty. */
-#define AUX_MU_LSR_REG_TX_EMPTY 0x20
+#define AUX_MU_LSR_REG_TX_EMPTY  BIT(5)
 
 /* Mini UART control register fields. */
 /* Receive enable. */
-#define AUX_MU_CNTL_REG_RX_EN 0x1
+#define AUX_MU_CNTL_REG_RX_EN  BIT(0)
 
 static void uart_set_baudrate(int baudrate)
 {

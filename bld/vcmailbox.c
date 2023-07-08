@@ -3,6 +3,7 @@
 #include "help.h"
 #include "heap.h"
 #include "debug.h"
+#include "bits.h"
 
 enum vcmailbox_register {
 	MBOX0_READ,
@@ -22,9 +23,9 @@ static struct periph_access vcmailbox_access = {
 };
 
 /* Mailbox 1 status register fields. */
-#define MBOX1_STATUS_FULL  0x80000000
+#define MBOX1_STATUS_FULL   BIT(31)
 /* Mailbox 0 status register fields. */
-#define MBOX0_STATUS_EMPTY 0x40000000
+#define MBOX0_STATUS_EMPTY  BIT(30)
 
 
 /*
@@ -55,7 +56,7 @@ struct tag {
 } __attribute__((aligned(4)));
 
 /* See bit 31 of tag.response_code documentation above. */
-#define TAG_RESPONSE_CODE_RESPONSE 0x80000000
+#define TAG_RESPONSE_CODE_RESPONSE  BIT(31)
 
 /*
  * Buffer used to request/receive properties from the VideoCore. 
@@ -76,9 +77,9 @@ struct property_buffer {
 } __attribute__((aligned(16)));
 
 /* See bit 31 of property_buffer.response_code documentation above. */
-#define PROP_RESPONSE_CODE_RESPONSE 0x80000000
+#define PROP_RESPONSE_CODE_RESPONSE  BIT(31)
 /* See bit 0 of property_buffer.response_code documentation above. */
-#define PROP_RESPONSE_CODE_ERROR 0x1
+#define PROP_RESPONSE_CODE_ERROR     BIT(0)
 
 /*
  * Defines the type of a message sent through the VideoCore mailbox.
@@ -94,7 +95,7 @@ enum channel {
 /* 
  * Channel spans the 4 least significant bits (bits 3:0) of the 32-bit message.
  */
-#define CHANNEL_BITS 0b1111
+#define CHANNEL_BITS  BITS(3, 0)
 
 static bool mbox1_status_full_flag_set(void)
 {

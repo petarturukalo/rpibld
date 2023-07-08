@@ -3,7 +3,7 @@
 
 #include "../type.h"
 
-/* A cmd_index has this bet set if it's an application command. */
+/* A cmd_index has this bit set if it's an application command. */
 #define IS_APP_CMD 0x80
 
 /*

@@ -2,6 +2,7 @@
 #include "mmio.h"
 #include "type.h"
 #include "gic.h"
+#include "bits.h"
 
 /*
  * Timer channels 0 and 2 are supposedly used by the VPU so only
@@ -33,7 +34,7 @@ static struct periph_access timer_access = {
 };
 
 /* Control/status (CS) register fields. */
-#define CS_MATCH1 0x2
+#define CS_MATCH1  BIT(1)
 
 
 /*

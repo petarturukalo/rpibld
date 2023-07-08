@@ -2,10 +2,10 @@
  * Entry point to the bootloader. 
  */
 #include "addrmap.h"
+#include "bits.h"
 
 /* Current program status register fields. */
-// TODO fixup bit #defs here
-#define CPSR_MODE     0b11111  /* Mask. */
+#define CPSR_MODE     BITS(4, 0)  /* Mask. */
 #define CPSR_MODE_IRQ 0b10010
 #define CPSR_MODE_SVC 0b10011
 

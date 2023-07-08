@@ -3,6 +3,7 @@
 #include "../help.h"
 #include "../timer.h"
 #include "../debug.h"
+#include "../bits.h"
 
 /*
  * Arguments used by some addressed commands requiring
@@ -343,9 +344,9 @@ enum cmd_error sd_issue_cmd8(void)
 /* Voltage window. */
 #define OCR_VDD_2V7_TO_3V6		0x00ff8000
 /* 0 is SDSC, 1 is SDHC/SDXC. */
-#define OCR_CARD_CAPACITY_STATUS	0x40000000
+#define OCR_CARD_CAPACITY_STATUS	BIT(30)
 /* Whether card power up procedure has finished. */
-#define OCR_CARD_POWER_UP_STATUS	0x80000000
+#define OCR_CARD_POWER_UP_STATUS	BIT(31)
 
 /* ACMD41 argument fields. */
 /* Whether the host supports SDHC/SDXC. */

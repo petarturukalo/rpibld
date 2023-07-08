@@ -1,7 +1,8 @@
 #include "int.h"
 #include "help.h"
+#include "bits.h"
 
-#define CPSR_I  0x080  /* Disable IRQ. */
+#define CPSR_I  BIT(7)  /* Disable IRQ. */
 
 void enable_interrupts(void)
 {
