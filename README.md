@@ -62,12 +62,12 @@ must be made to the device tree sources before compilation.
 The following lists the modifications required of the device tree sources in order for Linux to boot 
 successfully.
 
-1. The booted kernel uses the commandline parameters specified in the `bootargs` property of the device tree
+1. The booted kernel uses the command-line parameters specified in the `bootargs` property of the device tree
 `/chosen` node, and ignores the parameters given in the kernel config `CONFIG_CMDLINE`. As is typical
-of a kernel commandline, it must specify the partition of the root filesystem, e.g. a minimal commandline
-specifying partition 2 as the root filesystem would be something like 
+of a kernel command line, it must specify the partition of the root filesystem, e.g. a minimal command line
+specifying partition 2 as the root filesystem is
 `8250.nr_uarts=1 console=ttyS0,115200 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 fsck.repair=yes rootwait`.
-See [2] for a complete list and explanation of the kernel commandline parameters.
+See [2] for a complete list and explanation of the kernel command-line parameters.
 2. The `reg` property of the `memory` node is empty and must be filled. I use 
 `reg = <0x00 0x00 0x3b400000 0x00 0x40000000 0x40000000>;`, which I got by looking at the device tree
 of a running Linux with decompilation command `dtc -I fs /sys/firmware/devicetree/base`. Note
@@ -76,16 +76,15 @@ but it's very likely the value of this `reg` property will be different dependin
 the Pi's RAM (2, 4, or 8 GB).
 
 If you don't want to go through all of these steps, I have provided a ready DTB/kernel in `data/img` with the 
-modifications listed above, i.e. DTB with kernel commandline specifying root filesystem on partition 2 and
+modifications listed above, i.e. DTB with kernel command line specifying root filesystem on partition 2 and
 memory set to 2 GB. Note these were compiled from RPI Linux [3] version 6.1.35; I have observed when 
-there's mismatch in version between kernel and modules, the Pi will not run smoothly, so ensure to install
+there's a mismatch in version between kernel and modules, the Pi will not run smoothly, so ensure to install
 modules matching this same version if you see this issue. See [4] for more info on RPI Linux versioning.
 
 [1] https://www.raspberrypi.com/documentation/computers/linux_kernel.html#building-the-kernel
 [2] https://www.kernel.org/doc/html/latest/admin-guide/kernel-parameters.html
 [3] https://github.com/raspberrypi/linux
 [4] https://www.raspberrypi.com/documentation/computers/linux_kernel.html#version-identification
-TODO just make these hyperlinks?
 
 ## Bootloader
 
@@ -104,8 +103,35 @@ contents of `config.txt` are littered throughout the source.
 
 ## Troubleshooting
 
-TODO troubleshooting bootloader: explain LED and mini UART debug serial (only transmit)
-TODO explain kernel troubleshooting: earlycon, kconfig debugs (retest which are actually needed), etc.
+If the bootloader hits an error it will stop and continuously signal an error code by flashing 
+the LED a certain number of times (see `bld/error.h` for more info and the error codes that are 
+signalled).
+
+More helpful, however, is the bootloader also logs its progress and any errors encountered over 
+the mini UART transmit line. See `bld/uart.h:uart_init()` for info on the serial parameters 
+that the receiver is required to match.
+
+If an error occurs  after the bootloader jumps to the kernel (i.e. after the bootloader logs that 
+it is jumping to the kernel) then the kernel can be configured to log its output over a serial
+console. This serial console shall use the same mini UART that the bootloader uses, and so must
+be configured with the same transmitter parameters as in the bootloader. This can be achieved with 
+kernel command-line parameters `console=ttyS0,115200` and `8250.nr_uarts=1`.
+
+If the error occurs before the serial console is initialised then you may still not see any output.
+A work around for this is to use the `earlycon` command-line param, e.g. 
+`ignore_loglevel keep_bootcon earlycon=uart8250,mmio32,0xfe215040`. Ensure kernel config 
+`CONFIG_SERIAL_EARLYCON=y` is also set.
+
+Again, if the error occurs before the early serial console is initialised, e.g. if the kernel wasn't
+given a DTB, then you you may still not see any output. To work around this, look into using the
+following kernel configs.
+
+	CONFIG_DEBUG_LL=y
+	CONFIG_DEBUG_LL_UART_8250=y
+	CONFIG_DEBUG_UART_PHYS=0xfe215040
+	CONFIG_DEBUG_UART_VIRT=0xf0215040
+	CONFIG_DEBUG_LL_UART_8250_WORD=y
+	CONFIG_DEBUG_UNCOMPRESS=y
 
 
 # Resources
@@ -165,16 +191,3 @@ useful in understanding the ARM stub GIC code
 contains definitions of register fields not present in the GIC-400 Technical Reference Manual
 
 
-TODO
-
-PUT BELOW 2 REFS IN SECTION ON GETTING THE ZIMAGE AND DTB
-* [Raspberry Pi Linux kernel](https://github.com/raspberrypi/linux)
-* [Building Linux]()
-
-- mention minimum /boot partition files like config.txt needed 
-	(see uncommitted boot-part dir; provide committed default files)
-- add troubleshooting section on selecting a cmdline?
-- mention need to have device driver modules installed matching version of kernel using 
-- device tree needs specific settings in order to boot (here's one i prepared earlier); see
-doc/boot/dt.txt
-- resolve TODOs
