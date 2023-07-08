@@ -190,4 +190,3 @@ useful in understanding the ARM stub GIC code
 * [ARM Generic Interrupt Controller Architecture Specification](https://developer.arm.com/documentation/ihi0069/h/):
 contains definitions of register fields not present in the GIC-400 Technical Reference Manual
 
-
