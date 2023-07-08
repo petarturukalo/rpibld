@@ -1,7 +1,6 @@
-# TODO use find instead?
-objs=$(patsubst bld/%.S, build/%.o, $(wildcard bld/*.S))
-objs+=$(patsubst bld/%.c, build/%.o, $(wildcard bld/*.c))
-objs+=$(patsubst bld/sd/%.c, build/sd/%.o, $(wildcard bld/sd/*.c))
+srcs=$(shell find bld -name '*.[cS]' -print)
+objs=$(patsubst %.c, %.o, $(srcs))
+objs:=$(patsubst %.S, %.o, $(objs))
 # Cross compilation prefix.
 # TODO test using regular gcc on rpi to compile this
 # TODO explain if changing cross_prefix might need to change libgcc_searchdir also
@@ -23,27 +22,23 @@ LDFLAGS=-T $(linker_script) -static -L $(libgcc_searchdir) --no-warn-rwx-segment
 LDLIBS=-lgcc
 
 
-bootloader: build/bootloader.elf
+bootloader: bld/bootloader.elf
 	$(cross_prefix)objcopy -O binary $< $@
 
-build/bootloader.elf: $(objs) $(linker_script)
+bld/bootloader.elf: $(objs) $(linker_script)
 	$(cross_prefix)ld $(LDFLAGS) $(objs) $(LDLIBS) -o $@
 
-# TODO merge this with .c files since using gcc instead of as here?
-build/%.o: bld/%.S
+bld/%.o: bld/%.[cS]
 	$(cross_prefix)gcc $(CFLAGS) $< -o $@ 
 
-build/%.o: bld/%.c
-	$(cross_prefix)gcc $(CFLAGS) $< -o $@
 
-
-imager: img/img.c 
+imager: img/img.c include/img.h
 	$(cross-prefix)gcc -Iinclude $< -o $@
 
 
 clean:
-	find build -name '*.o' -print -delete
-	rm build/bootloader.elf bootloader imager
+	find bld -name '*.o' -print -delete
+	rm bld/bootloader.elf bootloader imager
 
 install:
 	sudo cp -fv data/boot/* mnt-boot

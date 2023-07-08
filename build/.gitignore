@@ -1,3 +1,0 @@
-*.o 
-bootloader.elf
-!.gitignore
