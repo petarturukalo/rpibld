@@ -9,8 +9,8 @@
 enum uart_register {
 	AUX_ENABLES,
 	AUX_MU_IO_REG,
-	AUX_MU_LCR_REG,
-	AUX_MU_LSR_REG,
+	AUX_MU_LCR_REG,  /* Line control register. */
+	AUX_MU_LSR_REG,  /* Line status register. */
 	AUX_MU_CNTL_REG,
 	AUX_MU_BAUD_REG
 };
@@ -27,24 +27,16 @@ static struct periph_access uart_access = {
 	}
 };
 
-/* Auxiliary enables register fields. */
 #define AUX_ENABLES_MINI_UART_ENABLE  BIT(0)
 
-/* Mini UART I/O data register fields. */
-/* Transmit data. */
-#define AUX_MU_IO_REG_TX_DATA  BITS(7, 0)
+#define AUX_MU_IO_REG_TX_DATA  BITS(7, 0)  /* Transmit data. */
 
-/* Mini UART line control register fields. */
 /* BCM2711 datasheet is wrong. Need to set bits 1:0 to 0b11 to get 8 data bits. */
 #define AUX_MU_LCR_REG_DATA_SIZE  BITS(1, 0)
 
-/* Mini UART line status register fields. */
-/* Transmitter empty. */
-#define AUX_MU_LSR_REG_TX_EMPTY  BIT(5)
+#define AUX_MU_LSR_REG_TX_EMPTY  BIT(5)  /* Transmitter empty. */
 
-/* Mini UART control register fields. */
-/* Receive enable. */
-#define AUX_MU_CNTL_REG_RX_EN  BIT(0)
+#define AUX_MU_CNTL_REG_RX_EN  BIT(0)  /* Receive enable. */
 
 static void uart_set_baudrate(int baudrate)
 {

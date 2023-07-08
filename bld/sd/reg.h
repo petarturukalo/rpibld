@@ -109,16 +109,14 @@ struct interrupt {
 	bits_t reserved5 : 7;
 } __attribute__((packed));
 
-/* Extra masks for the interrupt registers (INTERRUPT, etc.). */
+/* Extra masks for the interrupt registers (INTERRUPT, etc., as above). */
 #define INTERRUPT_CMD_COMPLETE       BIT(0)
 #define INTERRUPT_TRANSFER_COMPLETE  BIT(1)
 #define INTERRUPT_READ_READY         BIT(5)
 
-/* Status register fields. */
 #define STATUS_COMMAND_INHIBIT_CMD  BIT(0)
 #define STATUS_COMMAND_INHIBIT_DAT  BIT(1)
 
-/* Control 0 register fields. */
 #define CONTROL0_DATA_TRANSFER_WIDTH  BIT(1)
 /*
  * The BCM2835 datasheet lists the below power control bits as reserved, 
@@ -127,19 +125,14 @@ struct interrupt {
  */
 #define CONTROL0_PWR_CTL_SHIFT 8
 /* Power control register fields. */
-/* Voltage select. */
-#define PWR_CTL_SD_BUS_VOLT_SEL_3V3 BITS(3, 1)
+#define PWR_CTL_SD_BUS_VOLT_SEL_3V3 BITS(3, 1)  /* Voltage select. */
 #define PWR_CTL_SD_BUS_POWER        BIT(0)
 
-/* Control 1 register fields. */
-/* Mask for clock enable, internal clock stable, internal clock enable. */
-#define CONTROL1_INT_CLK_EN      BIT(0)
-#define CONTROL1_INT_CLK_STABLE  BIT(1)
-#define CONTROL1_CLK_EN          BIT(2)
-/* SD clock frequency select and shift. */
-#define CONTROL1_CLK_FREQ_SEL  BITS(15, 8)
+#define CONTROL1_INT_CLK_EN      BIT(0)  /* Internal clock enable. */
+#define CONTROL1_INT_CLK_STABLE  BIT(1)  /* Internal clock stable. */
+#define CONTROL1_CLK_EN          BIT(2)  /* Clock enable. */
+#define CONTROL1_CLK_FREQ_SEL    BITS(15, 8)  /* SD clock frequency select. */
 #define CONTROL1_CLK_FREQ_SEL_SHIFT 8
-/* Software reset host controller. */
-#define CONTROL1_SW_RESET_HC  BIT(24)
+#define CONTROL1_SW_RESET_HC     BIT(24)  /* Software reset host controller. */
 
 #endif

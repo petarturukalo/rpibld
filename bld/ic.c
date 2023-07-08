@@ -15,8 +15,7 @@ static struct periph_access arm_local_access = {
 	}
 };
 
-/* IRQ source register fields. */
-/* VideoCore interrupt request. */
+/* IRQ_SOURCE[0-3] register fields. */
 #define IRQ_SOURCE_CORE_IRQ  BIT(8)
 
 
@@ -47,20 +46,20 @@ static struct periph_access armc_access = {
 	}
 };
 
-/* IRQ[0-3] pending 2 register fields. */
+/* IRQ[0-3]_PENDING2 register fields. */
 /* Interrupt is a VideoCore interrupt in range 31 to 0. */
 #define IRQ_PENDING2_INT31_0   BIT(24)
 /* Interrupt is a VideoCore interrupt in range 63 to 32. */
 #define IRQ_PENDING2_INT63_32  BIT(25)
 
 /* 
- * Register fields for registers IRQ[0-3] set enable 0,
- * clear enable 0, pending 0.
+ * Register fields for registers IRQ[0-3]_SET_EN_0, 
+ * IRQ[0-3]_CLR_EN_0, IRQ[0-3]_PENDING0.
  */
 #define IRQ_INT31_0_TIMER1  BIT(1)
 /* 
- * Register fields for registers IRQ[0-4] set enable 1,
- * clear enable 1, pending 1.
+ * Register fields for registers IRQ[0-3]_SET_EN_1, 
+ * IRQ[0-3]_CLR_EN_1, IRQ[0-3]_PENDING1.
  */
 #define IRQ_INT63_32_EMMC2  BIT(30)
 

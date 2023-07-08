@@ -13,7 +13,7 @@
  * non-zero values, while channels 1 and 3 reset to zeroed values.
  */
 enum timer_register {
-	CS,
+	CS,  /* Control/status. */
 	CLO,
 	C0,
 	C1,
@@ -33,7 +33,6 @@ static struct periph_access timer_access = {
 	}
 };
 
-/* Control/status (CS) register fields. */
 #define CS_MATCH1  BIT(1)
 
 

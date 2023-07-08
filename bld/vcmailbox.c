@@ -22,9 +22,8 @@ static struct periph_access vcmailbox_access = {
 	}
 };
 
-/* Mailbox 1 status register fields. */
 #define MBOX1_STATUS_FULL   BIT(31)
-/* Mailbox 0 status register fields. */
+
 #define MBOX0_STATUS_EMPTY  BIT(30)
 
 
