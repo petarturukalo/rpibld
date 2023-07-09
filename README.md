@@ -55,9 +55,9 @@ See [1] for building these files yourself.
 
 Note the default built DTB is incomplete and can't be used to boot successfully. This is because 
 it's expected this DTB is loaded by the Raspberry Pi firmware, which will modify it and complete its
-missing/empty properties before executing the kernel. However, because this bootloader is what loads 
-the DTB instead of the firmware, this modification is not done. To work around this, the modifications
-must be made to the device tree sources before compilation.
+missing/empty properties before executing the kernel. Since this bootloader is what loads the DTB 
+instead of the firmware, this modification is not done. To work around this, the modifications must 
+be made to the device tree sources before compilation.
 
 The following lists the modifications required of the device tree sources in order for Linux to boot 
 successfully.
@@ -93,7 +93,7 @@ set the `image_partition` variable in the `Makefile` to the partition number of 
 partition (e.g. 3).
 
 Compile the bootloader with `make bootloader`. To cross compile configure `cross_prefix` in
-the `Makefile` appropriately. 
+the `Makefile` beforehand. 
 
 Install the bootloader on your SD card by first mounting its `/boot` partition on `mnt-boot`,
 and then running `make install`. WARNING this will also install the minimum set of boot files 
@@ -111,14 +111,14 @@ More helpful, however, is the bootloader also logs its progress and any errors e
 the mini UART transmit line. See `bld/uart.h:uart_init()` for info on the serial parameters 
 that the receiver is required to match.
 
-If an error occurs  after the bootloader jumps to the kernel (i.e. after the bootloader logs that 
-it is jumping to the kernel) then the kernel can be configured to log its output over a serial
-console. This serial console shall use the same mini UART that the bootloader uses, and so must
-be configured with the same transmitter parameters as in the bootloader. This can be achieved with 
+If an error occurs after the bootloader jumps to the kernel (i.e. after the bootloader logs that 
+it is jumping to the kernel) then you may see output logged to the consoles, monitor and/or serial.
+If a serial console is used then it shall use the same mini UART as the bootloader, and so must be 
+configured with the same transmitter parameters as in the bootloader. This can be achieved with 
 kernel command-line parameters `console=ttyS0,115200` and `8250.nr_uarts=1`.
 
-If the error occurs before the serial console is initialised then you may still not see any output.
-A work around for this is to use the `earlycon` command-line param, e.g. 
+If the error occurs before the consoles are initialised then you may still not see any output.
+A work around for this is to use the `earlycon` command-line param for early serial output, e.g. 
 `ignore_loglevel keep_bootcon earlycon=uart8250,mmio32,0xfe215040`. Ensure kernel config 
 `CONFIG_SERIAL_EARLYCON=y` is also set.
 
