@@ -77,9 +77,9 @@ the Pi's RAM (2, 4, or 8 GB).
 
 If you don't want to go through all of these steps, I have provided a ready DTB/kernel in `data/img` with the 
 modifications listed above, i.e. DTB with kernel command line specifying root filesystem on partition 2 and
-memory set to 2 GB. Note these were compiled from RPI Linux [3] version 6.1.35; I have observed when 
-there's a mismatch in version between kernel and modules, the Pi will not run smoothly, so ensure to install
-modules matching this same version if you see this issue. See [4] for more info on RPI Linux versioning.
+memory set to 2 GB. Note these were compiled from RPI Linux [3] version 6.1.35: you may run into issues if
+there's a mismatch in version between kernel and modules, such as the Pi not running smoothly, so try also 
+installing modules matching this same version if troubleshooting. See [4] for more info on RPI Linux versioning.
 
 [1] https://www.raspberrypi.com/documentation/computers/linux_kernel.html#building-the-kernel
 [2] https://www.kernel.org/doc/html/latest/admin-guide/kernel-parameters.html

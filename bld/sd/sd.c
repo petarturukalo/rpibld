@@ -418,6 +418,7 @@ static bool _sd_read_blocks_card(byte_t *ram_dest_addr, void *sd_src_lba, uint16
 		return false;
 	}
 	/* Convert LBA / block unit address to byte unit address for SDSC. */
+	// TODO test this works
 	if (!card->sdhc_or_sdxc) 
 		sd_src_lba = (void *)((int)sd_src_lba*READ_BLKSZ);
 	
