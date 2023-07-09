@@ -1,6 +1,10 @@
 /*
+ * SPDX-License-Identifier: GPL-2.0
+ *
  * From the BCM2711 RPI 4 B device tree source the ACT LED is accessible through pin 42
  * and has normal polarity (is active high).
+ *
+ * Copyright (C) 2023 Petar Turukalo
  */
 #include "led.h"
 #include "gpio.h"

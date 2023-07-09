@@ -1,3 +1,8 @@
+/*
+ * SPDX-License-Identifier: GPL-2.0
+ *
+ * Copyright (C) 2023 Petar Turukalo
+ */
 #ifndef ERROR_R
 #define ERROR_R
 

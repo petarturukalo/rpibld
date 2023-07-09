@@ -1,5 +1,9 @@
 /*
+ * SPDX-License-Identifier: GPL-2.0
+ *
  * Debugging utilities.
+ *
+ * Copyright (C) 2023 Petar Turukalo
  */
 #ifndef DEBUG_H
 #define DEBUG_H

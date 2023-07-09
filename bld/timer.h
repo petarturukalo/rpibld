@@ -1,4 +1,6 @@
 /*
+ * SPDX-License-Identifier: GPL-2.0
+ *
  * Choice of timer from the BCM2711 datasheet is between the 
  * system timer and the ARM timer. The system timer is used 
  * over the ARM timer because the ARM timer can be inaccurate.
@@ -9,6 +11,8 @@
  * the AXI/APB, is chosen because it is fixed-frequency - the AXI/APB is not 
  * fixed-frequency, which could inhibit accurate timing.
  * Note the crystal clock is selected by default.
+ *
+ * Copyright (C) 2023 Petar Turukalo
  */
 #ifndef TIMER_H
 #define TIMER_H

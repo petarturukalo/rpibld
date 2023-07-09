@@ -1,4 +1,6 @@
 /*
+ * SPDX-License-Identifier: GPL-2.0
+ *
  * Access to the mini UART.
  *
  * To use the mini UART clock_freq=250 and clock_freq_min=250 
@@ -11,6 +13,8 @@
  *
  * Note setting enable_uart=1 is NOT required in config.txt, and is actually
  * redundant here because uart_init() is enabling it.
+ *
+ * Copyright (C) 2023 Petar Turukalo
  */
 #ifndef UART_H
 #define UART_H

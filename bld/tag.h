@@ -1,5 +1,9 @@
 /*
+ * SPDX-License-Identifier: GPL-2.0
+ *
  * Get tags/properties from the VideoCore.
+ *
+ * Copyright (C) 2023 Petar Turukalo
  */
 #ifndef TAG_H
 #define TAG_H

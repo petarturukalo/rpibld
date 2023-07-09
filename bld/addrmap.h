@@ -1,4 +1,6 @@
 /*
+ * SPDX-License-Identifier: GPL-2.0
+ *
  * Address map. How the bootloader uses RAM. The following diagram 
  * illustrates how the RAM is sectioned for use by the bootloader. 
  * Sections are delimited by borders: a hyphenated border (----) 
@@ -34,6 +36,8 @@
  *   8 KiB +------------+
  *         |            |
  * 0 bytes +------------+
+ *
+ * Copyright (C) 2023 Petar Turukalo
  */
 #ifndef ADDRMAP_H
 #define ADDRMAP_H

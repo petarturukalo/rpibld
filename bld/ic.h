@@ -1,6 +1,10 @@
 /*
+ * SPDX-License-Identifier: GPL-2.0
+ *
  * The legacy interrupt controller.
  * Usable only if enable_gic=0 in config.txt.
+ *
+ * Copyright (C) 2023 Petar Turukalo
  */
 #ifndef IC_H
 #define IC_H
