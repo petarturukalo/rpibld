@@ -51,7 +51,7 @@
  *
  * What I thought would be an issue, but turns out not to be an issue, is that these secondary
  * cores will not have the correct device tree blob address in register r2 when booting ARM Linux,
- * since this bootloader is what loads it. It's not an issue however because Linux SMP still boots 
+ * since this bootloader is what loads it. This is not an issue however because Linux SMP still boots 
  * successfully, presumably because the kernel already knows where the DTB is from the primary core 
  * (note, from debugging, the secondary cores jump into the kernel code with r2 set to 0).
  */
