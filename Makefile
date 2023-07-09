@@ -1,6 +1,7 @@
 srcs=$(shell find bld -name '*.[cS]' -print)
 objs=$(patsubst %.c, %.o, $(srcs))
 objs:=$(patsubst %.S, %.o, $(objs))
+deps=$(patsubst %.o, %.d, $(objs))
 # Cross compilation prefix.
 cross_prefix=arm-none-eabi-
 linker_script=boot.ld
@@ -11,6 +12,7 @@ CFLAGS=-nostdlib -r -march=armv7ve -Wunused -Werror=undef -Iinclude \
 	-DIMAGE_PARTITION=$(image_partition)
 LDFLAGS=-T $(linker_script) -static 
 
+-include $(deps)
 
 bootloader: bld/bootloader.elf
 	$(cross_prefix)objcopy -O binary $< $@
@@ -19,7 +21,7 @@ bld/bootloader.elf: $(objs) $(linker_script)
 	$(cross_prefix)ld $(LDFLAGS) $(objs) -o $@
 
 bld/%.o: bld/%.[cS]
-	$(cross_prefix)gcc $(CFLAGS) $< -o $@ 
+	$(cross_prefix)gcc $(CFLAGS) -MMD $< -o $@ 
 
 
 imager: img/img.c include/img.h
@@ -27,7 +29,7 @@ imager: img/img.c include/img.h
 
 
 clean:
-	find bld -name '*.o' -print -delete
+	find bld -name '*.[od]' -print -delete
 	rm bld/bootloader.elf bootloader imager
 
 install:
