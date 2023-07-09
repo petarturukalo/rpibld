@@ -507,10 +507,6 @@ enum cmd_error sd_issue_read_cmd(enum cmd_index idx, byte_t *ram_dest_addr, void
 		if (error != CMD_ERROR_NONE) 
 			goto sd_issue_read_cmd_cleanup;
 		/* Copy read block from host buffer to RAM. */
-		// TODO either put in barriers or document why it's not used.
-		// assumption: don't need barriers on access because only mixing
-		// access with INTERRUPT reg that will have barriers used in the 
-		// register_get() and friends fns
 		__asm__("mov r6, #" MSTRFY(READ_BLKSZ) "\n\t"
 			"read_data:\n\t"
 			"ldr r7, [r4]\n\t"
@@ -519,6 +515,10 @@ enum cmd_error sd_issue_read_cmd(enum cmd_index idx, byte_t *ram_dest_addr, void
 			"subs r6, r6, #4\n\t"
 			"bne read_data");
 	}
+	/* 
+	 * There is no explicit read memory barrier here because it will be done in 
+	 * register_get() reading the INTERRUPT register.
+	 */
 	error = sd_wait_for_interrupt(INTERRUPT_TRANSFER_COMPLETE);
 sd_issue_read_cmd_cleanup:
 	__asm__("pop {r4-r7}");

@@ -6,20 +6,18 @@
 #include "mmio.h"
 #include "help.h"
 
-static byte_t *get_peripheral_base_address(int peripheral_base_offset)
+static uint32_t *get_peripheral_reg_addr(struct periph_access *periph, int register_select)
 {
-	return (byte_t *)(ARM_LO_MAIN_PERIPH_BASE_ADDR + peripheral_base_offset);
+	return (uint32_t *)(ARM_LO_MAIN_PERIPH_BASE_ADDR + periph->periph_base_off
+			    + periph->register_offsets[register_select]);
 }
 
 void register_set(struct periph_access *periph, int register_select, uint32_t value)
 {
-	byte_t *periph_base_addr = get_peripheral_base_address(periph->periph_base_off);
-	int reg_off = periph->register_offsets[register_select];
+	volatile uint32_t *periph_reg_addr = get_peripheral_reg_addr(periph, register_select);
 
-	// TODO figure out how to use memory barriers properly
-	__asm__("dmb");
-	*(uint32_t *)(periph_base_addr+reg_off) = value;
-	__asm__("dmb");
+	__asm__ __volatile__("dsb st" ::: "memory");  /* Memory write barrier. */
+	*periph_reg_addr = value;
 }
 
 void register_set_ptr(struct periph_access *periph, int register_select, void *value)
@@ -31,16 +29,9 @@ void register_set_ptr(struct periph_access *periph, int register_select, void *v
 
 uint32_t register_get(struct periph_access *periph, int register_select)
 {
-	byte_t *periph_base_addr;
-	int reg_off;
-	uint32_t ret;
-
-       	periph_base_addr = get_peripheral_base_address(periph->periph_base_off);
-	reg_off = periph->register_offsets[register_select];
-
-	__asm__("dmb");
-	ret = *(uint32_t *)(periph_base_addr+reg_off);
-	__asm__("dmb");
+	volatile uint32_t *periph_reg_addr = get_peripheral_reg_addr(periph, register_select);
+	uint32_t ret = *periph_reg_addr;
+	__asm__ __volatile__("dsb" ::: "memory");  /* Memory read barrier. */
 	return ret;
 }
 

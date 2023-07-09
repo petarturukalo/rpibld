@@ -45,7 +45,6 @@ struct periph_access {
 	int register_offsets[];
 };
 
-// TODO need volatile here? (forgot to put it in .c when i added it here too)
 /*
  * Set/get the value of a 32-bit memory-mapped register. The regular functions here are 32-bit;
  * functions with suffix _nbit are n-bit.
@@ -53,17 +52,17 @@ struct periph_access {
  * @register_select: an index into periph_access.register_offsets for selecting the register
  *	to access
  */
-volatile void register_set(struct periph_access *periph, int register_select, uint32_t value);
-volatile void register_set_ptr(struct periph_access *periph, int register_select, void *value);
-volatile uint32_t register_get(struct periph_access *periph, int register_select);
-volatile void register_get_out(struct periph_access *periph, int register_select, void *out);
+void register_set(struct periph_access *periph, int register_select, uint32_t value);
+void register_set_ptr(struct periph_access *periph, int register_select, void *value);
+uint32_t register_get(struct periph_access *periph, int register_select);
+void register_get_out(struct periph_access *periph, int register_select, void *out);
 
 /*
  * Enable/disable all the high bits in the mask. All low bits retain their previous value.
  *
  * @register_select: see register_set()
  */
-volatile void register_enable_bits(struct periph_access *periph, int register_select, uint32_t mask);
-volatile void register_disable_bits(struct periph_access *periph, int register_select, uint32_t mask);
+void register_enable_bits(struct periph_access *periph, int register_select, uint32_t mask);
+void register_disable_bits(struct periph_access *periph, int register_select, uint32_t mask);
 
 #endif
