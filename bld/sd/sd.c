@@ -11,7 +11,6 @@
 #include "reg.h"
 #include "cmd.h"
 #include "../debug.h"
-#include "../timer.h"//TODO rm
 
 /* 100 MHz. */
 #define EMMC2_EXPECTED_BASE_CLOCK_HZ 100000000
@@ -145,8 +144,6 @@ static bool sd_sw_reset_hc_bit_set(void)
 /*
  * Reset the entire host controller. Clears register bits, so needs to be
  * called before any other initialisation. 
- * TODO delete this if not needed after finish bootloader (might need it to
- * reset sd before jumping to OS)
  */
 static void sd_reset_host(void)
 {
@@ -205,12 +202,7 @@ static void sd_supply_clock(int clock_rate)
 
 	/* Turn off clock in case it was already on (required to change frequency). */
 	register_disable_bits(&sd_access, CONTROL1, CONTROL1_CLK_EN|CONTROL1_INT_CLK_EN);
-	/* 
-	 * Zero previous clock divider bits.
-	 * TODO didn't fix problem of being able to change clock but it should have?
-	 * from printing can confirm it's clearing the previous divider. or maybe it did change
-	 * but it's still slow for w/e reason TODO this TODO is outdated?
-	 */
+	/* Zero previous clock divider bits. */
 	register_disable_bits(&sd_access, CONTROL1, CONTROL1_CLK_FREQ_SEL);
 	/* Set clock divider and enable internal clock. */
 	register_enable_bits(&sd_access, CONTROL1, 
@@ -414,8 +406,8 @@ enum sd_init_error sd_init(void)
 	return sd_init_card(&card);
 }
 
-bool sd_read_blocks_card(byte_t *ram_dest_addr, void *sd_src_lba, int nblks, 
-			 struct card *card)
+static bool _sd_read_blocks_card(byte_t *ram_dest_addr, void *sd_src_lba, uint16_t nblks, 
+				 struct card *card)
 {
 	struct blksizecnt blkszcnt;
 	enum cmd_error error = CMD_ERROR_NONE;
@@ -432,10 +424,6 @@ bool sd_read_blocks_card(byte_t *ram_dest_addr, void *sd_src_lba, int nblks,
 	/* Set block size and count. */
 	mzero(&blkszcnt, sizeof(blkszcnt));
 	blkszcnt.blksize = READ_BLKSZ;
-	/* 
-	 * TODO blkcnt field only 16-bits, so can only transfer up to 33.5 MB at
-	 * a time. will need to loop if size is bigger than this. (loop in wrapper)
-	 */
 	blkszcnt.blkcnt = nblks;
 	register_set(&sd_access, BLKSIZECNT, cast_bitfields(blkszcnt, uint32_t));
 
@@ -453,6 +441,30 @@ bool sd_read_blocks_card(byte_t *ram_dest_addr, void *sd_src_lba, int nblks,
 		serial_log("SD read error: RAM dest addr %08x, SD src lba %08x, number "
 			   "of blocks %u", ram_dest_addr, sd_src_lba, nblks);
 	return error == CMD_ERROR_NONE;
+}
+
+static bool sd_read_blocks_card(byte_t *ram_dest_addr, void *sd_src_lba, int nblks, 
+				struct card *card)
+{
+	bool read_ok;
+
+	while (nblks > 0) {
+		/* 
+		 * Read command block count field is only 16 bits wide, meaning a multi block
+		 * transfer can only read up to ~33.55 MB, so must read in multiple passes
+		 * if read size is greater than this.
+		 */
+		read_ok = _sd_read_blocks_card(ram_dest_addr, sd_src_lba, 
+					       nblks < UINT16_MAX ? nblks : UINT16_MAX,
+					       card);
+		if (!read_ok)
+			return false;
+
+		nblks -= UINT16_MAX;
+		ram_dest_addr += READ_BLKSZ*UINT16_MAX;
+		sd_src_lba += UINT16_MAX;
+	}
+	return true;
 }
 
 bool sd_read_blocks(byte_t *ram_dest_addr, void *sd_src_lba, int nblks)
@@ -479,10 +491,9 @@ static bool sd_reset_card(struct card *card)
 	enum cmd_error error;
 
 	/* Reset card. */
-	// TODO need to worry about resetting interrupts or anything like that?
 	error = sd_issue_cmd(CMD_IDX_GO_IDLE_STATE, 0);
 	if (error != CMD_ERROR_NONE) 
-		return false;;
+		return false;
 
 	card->state = CARD_STATE_IDLE;
 

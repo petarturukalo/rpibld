@@ -19,7 +19,11 @@ enum sd_init_error {
  * Initialise the inserted SD card so that it is ready for data
  * transfer with sd_read_blocks(). The card is initialised to 
  * 4-bit data bus width, 25 MHz clock, default speed bus mode.
- * TODO supposedly up to 12.5 MB/sec transfer rate
+ *
+ * This should supposedly have an up to 12.5 MB/sec transfer rate, 
+ * but currently it's only 7 MB/sec. This is is plenty fast enough already,
+ * but the rest of the performance can likely be gained by enabling 
+ * and setting up the caches, which is left unimplemented for now.
  */
 enum sd_init_error sd_init(void);
 
@@ -48,7 +52,7 @@ int bytes_to_blocks(int bytes);
 
 /*
  * Reset the SD card and host controller to its state at boot.
- * TODO return
+ * Return whether successful.
  */
 bool sd_reset(void);
 
