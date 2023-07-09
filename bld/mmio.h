@@ -28,8 +28,8 @@
  *
  * The convention to define the format of a register's value (i.e. its fields) is either of the following.
  *
- * 1. If many of the register's fields will be used, define a separate struct for each register named 
- * <register name>. The register's fields shall be represented using bit-field struct members. 
+ * 1. If many of the register's fields will be used, define a struct for the register named <register name>. 
+ * The register's fields shall be represented using bit-field struct members. 
  * 2. If only a few of the register's fields will be used, #define shifts and/or masks for the register's 
  * fields, of name <register_name>_<field>[_SHIFT].
  *
