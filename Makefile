@@ -12,10 +12,10 @@ CFLAGS=-nostdlib -r -march=armv7ve -Wunused -Werror=undef -Iinclude \
 	-DIMAGE_PARTITION=$(image_partition)
 LDFLAGS=-T $(linker_script) -static 
 
--include $(deps)
-
 bootloader: bld/bootloader.elf
 	$(cross_prefix)objcopy -O binary $< $@
+
+-include $(deps)
 
 bld/bootloader.elf: $(objs) $(linker_script)
 	$(cross_prefix)ld $(LDFLAGS) $(objs) -o $@
