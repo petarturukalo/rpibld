@@ -433,7 +433,7 @@ static bool _sd_read_blocks_card(byte_t *ram_dest_addr, void *sd_src_lba, uint16
 	register_set(&sd_access, BLKSIZECNT, cast_bitfields(blkszcnt, uint32_t));
 
 	if (nblks == 1) {
-		/* Single block transfer */
+		/* Single block transfer. */
 		error = sd_issue_cmd17(ram_dest_addr, sd_src_lba);
 	} else if (nblks > 1) {
 		/* Multi block transfer. */
