@@ -49,7 +49,7 @@ enum card_state {
  * @state: the card's current state
  * @version_2_or_later: whether the card supports the physical layer
  *	specification version 2.00 or later. For reference SDSC (or just
- *	SD) was defined in version 2, SDHC in version 2, and SDXC in version 3.
+ *	SD) was defined in version 1, SDHC in version 2, and SDXC in version 3.
  * @sdhc_or_sdxc: whether the card is either of SDHC (high capacity) or SDXC
  *	(extended capacity). If false the card is SDSC (standard capacity).
  * @rca: card's relative card address
