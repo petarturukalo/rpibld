@@ -291,6 +291,8 @@ enum cmd_error sd_issue_cmd(enum cmd_index idx, uint32_t args)
 				   "status register: %08x", IDX_SPEC_ARGS(idx), cast_bitfields(cs, uint32_t));
 			return CMD_ERROR_CARD_STATUS_ERROR;;
 		}
+	} else if (error != CMD_ERROR_NONE) {
+		serial_log("SD cmd error: command " IDX_SPEC " failed", IDX_SPEC_ARGS(idx));
 	}
 	return error;
 }
