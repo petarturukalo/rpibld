@@ -182,7 +182,7 @@ the host controller specification which the SD peripheral implements
 the physical layer specification which the SD peripheral implements
 
 **Other**
-* [Booting ARM Linux](https://www.kernel.org/doc/html/latest/arm/booting.html): set up required to boot ARM Linux
+* [Booting ARM Linux](https://docs.kernel.org/6.2/arm/booting.html): set up required to boot ARM Linux
 * [ARM stub](https://github.com/raspberrypi/tools/blob/master/armstubs/armstub7.S): code firmware places at address 
 0x0 start of RAM, which is executed before this bootloader
 * [CoreLink GIC-400 Generic Interrupt Controller Technical Reference Manual](https://developer.arm.com/documentation/ddi0471/latest/): 
