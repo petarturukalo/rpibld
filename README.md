@@ -1,7 +1,7 @@
 # Description
 
 A Raspberry Pi 4 Model B fourth stage bootloader, for booting 32-bit 
-ARM Linux from a SD card.
+ARM Linux from an SD card.
 
 
 # Bootloader Stages
