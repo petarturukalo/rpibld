@@ -81,9 +81,9 @@ memory set to 2 GB. Note these were compiled from RPI Linux [3] version 6.1.35: 
 there's a mismatch in version between kernel and modules, such as the Pi not running smoothly, so try also 
 installing modules matching this same version if troubleshooting. See [4] for more info on RPI Linux versioning.
 
-[1] https://www.raspberrypi.com/documentation/computers/linux_kernel.html#building-the-kernel
-[2] https://www.kernel.org/doc/html/latest/admin-guide/kernel-parameters.html
-[3] https://github.com/raspberrypi/linux
+[1] https://www.raspberrypi.com/documentation/computers/linux_kernel.html#building-the-kernel  
+[2] https://www.kernel.org/doc/html/latest/admin-guide/kernel-parameters.html  
+[3] https://github.com/raspberrypi/linux  
 [4] https://www.raspberrypi.com/documentation/computers/linux_kernel.html#version-identification
 
 ## Bootloader
