@@ -161,7 +161,7 @@ has extra info on interrupt handlers
 * [AAPCS arm procedure call standard](https://github.com/ARM-software/abi-aa/blob/844a79fd4c77252a11342709e3b27b2c9f590cf1/aapcs32/aapcs32.rst): 
 helpful to know which registers are safe to use when writing assembly that will be mixed with compiled C
 
-**VideoCore Mailboxes**
+**VideoCore Mailboxes**  
 Official documentation on the VideoCore mailboxes is scarce. Although not all "official" the following 
 were still helpful (and just to reference concepts, not code).
 * https://github.com/raspberrypi/firmware/wiki/Mailboxes
