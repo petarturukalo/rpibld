@@ -228,12 +228,6 @@ static void sd_enable_interrupts(struct interrupt irpt)
 	 */
 }
 
-static void sd_disable_interrupts(struct interrupt irpt)
-{
-	/* See comments in sd_enable_interrupts(). */
-	register_disable_bits(&sd_access, IRPT_MASK, cast_bitfields(irpt, uint32_t));
-}
-
 static void sd_enable_cmd_interrupts(void)
 {
 	struct interrupt irpt;
@@ -248,7 +242,7 @@ static void sd_enable_cmd_interrupts(void)
 	sd_enable_interrupts(irpt);
 }
 
-static struct interrupt sd_get_enable_transfer_interrupts(void)
+static void sd_enable_transfer_interrupts(void)
 {
 	struct interrupt irpt;
 
@@ -259,19 +253,7 @@ static struct interrupt sd_get_enable_transfer_interrupts(void)
 	irpt.data_crc_error = true;
 	irpt.data_end_bit_error = true;
 
-	return irpt;
-}
-
-static void sd_enable_transfer_interrupts(void)
-{
-	struct interrupt irpt = sd_get_enable_transfer_interrupts();
 	sd_enable_interrupts(irpt);
-}
-
-static void sd_disable_transfer_interrupts(void)
-{
-	struct interrupt irpt = sd_get_enable_transfer_interrupts();
-	sd_disable_interrupts(irpt);
 }
 
 /*
@@ -416,13 +398,9 @@ enum sd_init_error sd_init_card(struct card *card_out)
 
 	/* Set 4-bit data bus width if supported. */
 	if (scr.bus_widths&SCR_BUS_WIDTHS_4BIT) {
-		sd_disable_transfer_interrupts();
-
 		sd_init_error = sd_set_4bit_data_bus_width(card_out->rca);
 		if (sd_init_error != SD_INIT_ERROR_NONE)
 			return sd_init_error;
-
-		sd_enable_transfer_interrupts();
 	}
 	serial_log("Successfully initialised SD: %s capacity, CMD23 %s, "
 		   "%s-bit data bus width, 25 MHz clock, default speed bus mode",
