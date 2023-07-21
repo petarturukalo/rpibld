@@ -117,7 +117,7 @@ If a serial console is used then it shall use the same mini UART as the bootload
 configured with the same transmitter parameters as in the bootloader. This can be achieved with 
 kernel command-line parameters `console=ttyS0,115200` and `8250.nr_uarts=1`.
 
-If the error occurs before the consoles are initialised then you may still not see any output.
+If the error occurs before the consoles are initialised then you may not see any output.
 A work around for this is to use the `earlycon` command-line param for early serial output, e.g. 
 `ignore_loglevel keep_bootcon earlycon=uart8250,mmio32,0xfe215040`. Ensure kernel config 
 `CONFIG_SERIAL_EARLYCON=y` is also set.
