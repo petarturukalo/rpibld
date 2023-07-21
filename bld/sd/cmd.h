@@ -7,6 +7,7 @@
 #define CMD_H
 
 #include "../type.h"
+#include "../bits.h"
 
 /* A cmd_index has this bit set if it's an application command. */
 #define IS_APP_CMD 0x80
@@ -27,7 +28,8 @@ enum cmd_index {
 	CMD_IDX_APP_CMD             = 55,
 /* Application commands. */
 	ACMD_IDX_SET_BUS_WIDTH      = 6|IS_APP_CMD,
-	ACMD_IDX_SD_SEND_OP_COND    = 41|IS_APP_CMD  /* Send operating condition register. */
+	ACMD_IDX_SD_SEND_OP_COND    = 41|IS_APP_CMD, /* Send operating condition register. */
+	ACMD_IDX_SD_SEND_SCR        = 51|IS_APP_CMD  /* Send SD configuration register. */
 };
 
 /*
@@ -83,8 +85,6 @@ enum cmd_error sd_issue_cmd8(void);
 /*
  * Power up the card.
  *
- * @host_capacity_support: whether the host supports SDHC/SDXC. This should be false if the
- *	card did not respond to CMD8.
  * @card_capacity_support_out: out-param card capacity support, whether card is SDHC/SDXC (true) or SDSC (false).
  *	Only valid on success.
  *
@@ -92,7 +92,7 @@ enum cmd_error sd_issue_cmd8(void);
  * - CMD_ERROR_RESPONSE_CONTENTS voltage range not supported in card's OCR register
  * - CMD_ERROR_GENERAL_TIMEOUT if the card did not power up in 1 second
  */
-enum cmd_error sd_issue_acmd41(bool host_capacity_support, bool *card_capacity_support_out);
+enum cmd_error sd_issue_acmd41(bool *card_capacity_support_out);
 
 /*
  * Publish a new relative card address for the card in out-param rca_out.
@@ -168,5 +168,19 @@ enum cmd_error sd_issue_acmd6(int rca, bool four_bit);
  */
 enum cmd_error sd_issue_cmd17(byte_t *ram_dest_addr, void *sd_src_addr);
 enum cmd_error sd_issue_cmd18(byte_t *ram_dest_addr, void *sd_src_addr, int nblks);
+
+/* SD card configuration register. */
+struct scr {
+	bits_t ignore1 : 1;
+	bits_t cmd23_supported : 1; 
+	bits_t ignore2 : 14;
+	bits_t bus_widths : 4;
+	bits_t ignore3 : 12;
+} __attribute__((packed));
+
+#define SCR_BUS_WIDTHS_4BIT BIT(2)
+
+/* Get the SD card to send its SCR register. */
+enum cmd_error sd_issue_acmd51(int rca, struct scr *scr_out);
 
 #endif

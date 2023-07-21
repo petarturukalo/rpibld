@@ -47,18 +47,15 @@ enum card_state {
  * Card (SD card) metadata and bookkeeping data.
  *
  * @state: the card's current state
- * @version_2_or_later: whether the card supports the physical layer
- *	specification version 2.00 or later. For reference SDSC (or just
- *	SD) was defined in version 1, SDHC in version 2, and SDXC in version 3.
  * @sdhc_or_sdxc: whether the card is either of SDHC (high capacity) or SDXC
  *	(extended capacity). If false the card is SDSC (standard capacity).
  * @rca: card's relative card address
  */
 struct card {
 	enum card_state state;
-	bool version_2_or_later;
 	bool sdhc_or_sdxc;
 	int rca;
+	bool cmd23_supported;
 };
 
 /*
@@ -231,6 +228,12 @@ static void sd_enable_interrupts(struct interrupt irpt)
 	 */
 }
 
+static void sd_disable_interrupts(struct interrupt irpt)
+{
+	/* See comments in sd_enable_interrupts(). */
+	register_disable_bits(&sd_access, IRPT_MASK, cast_bitfields(irpt, uint32_t));
+}
+
 static void sd_enable_cmd_interrupts(void)
 {
 	struct interrupt irpt;
@@ -245,7 +248,7 @@ static void sd_enable_cmd_interrupts(void)
 	sd_enable_interrupts(irpt);
 }
 
-static void sd_enable_transfer_interrupts(void)
+static struct interrupt sd_get_enable_transfer_interrupts(void)
 {
 	struct interrupt irpt;
 
@@ -256,7 +259,19 @@ static void sd_enable_transfer_interrupts(void)
 	irpt.data_crc_error = true;
 	irpt.data_end_bit_error = true;
 
+	return irpt;
+}
+
+static void sd_enable_transfer_interrupts(void)
+{
+	struct interrupt irpt = sd_get_enable_transfer_interrupts();
 	sd_enable_interrupts(irpt);
+}
+
+static void sd_disable_transfer_interrupts(void)
+{
+	struct interrupt irpt = sd_get_enable_transfer_interrupts();
+	sd_disable_interrupts(irpt);
 }
 
 /*
@@ -270,7 +285,6 @@ static void sd_pre_cmd_init(void)
 	/* 
 	 * Set clock frequency to 400 KHz for the card initialisation and identification 
 	 * period as some cards may have operating frequency restrictions during it.
-	 * TODO test this with different cards?
 	 */
 	sd_supply_clock(IDENTIFICATION_CLOCK_RATE_HZ);
 	sd_enable_cmd_interrupts();
@@ -283,7 +297,7 @@ static void sd_pre_cmd_init(void)
 static enum sd_init_error sd_card_init_and_identify(struct card *card)
 {
 	enum cmd_error error;
-	bool ccs, cmd8_response;
+	bool ccs;
 
 	card->state = CARD_STATE_IDLE;
 
@@ -292,27 +306,24 @@ static enum sd_init_error sd_card_init_and_identify(struct card *card)
 	if (error != CMD_ERROR_NONE) 
 		return SD_INIT_ERROR_ISSUE_CMD;
 
+	/* 
+	 * CMD8 was defined in phys layer version 2: only a version >= 2 card will respond.
+	 * Apparently SDSC is version 1, but all of the 2 GB SDSC cards I've tested with have all
+	 * been version 2/3 still, so don't worry about supporting version 1 cards and let it
+	 * fail here.
+	 */
 	error = sd_issue_cmd8();
 	if (error == CMD_ERROR_RESPONSE_CONTENTS)
 		return SD_INIT_ERROR_UNUSABLE_CARD;
-	if (error != CMD_ERROR_NONE && error != CMD_ERROR_WAIT_FOR_INTERRUPT_TIMEOUT) 
+	if (error != CMD_ERROR_NONE) 
 		return SD_INIT_ERROR_ISSUE_CMD;
-	/* 
-	 * CMD8 was defined in phys layer version 2: only a version >= 2 card will respond.
-	 * No response is indicated by CMD_ERROR_WAIT_FOR_INTERRUPT_TIMEOUT.
-	 * TODO is CMD_ERROR_WAIT_FOR_INTERRUPT_TIMEOUT the correct way to test for no response?
-	 * (need to get a version < 2 card to test with)
-	 * TODO fix up returns from cmd8 and add serial_log() above?
-	 */
-	cmd8_response = error == CMD_ERROR_NONE;
-	card->version_2_or_later = cmd8_response;
 
-	error = sd_issue_acmd41(cmd8_response, &ccs);
+	error = sd_issue_acmd41(&ccs);
 	if (error == CMD_ERROR_RESPONSE_CONTENTS || error == CMD_ERROR_GENERAL_TIMEOUT) 
 		return SD_INIT_ERROR_UNUSABLE_CARD;
 	if (error != CMD_ERROR_NONE) 
 		return SD_INIT_ERROR_ISSUE_CMD;
-	card->sdhc_or_sdxc = card->version_2_or_later && ccs;
+	card->sdhc_or_sdxc = ccs;
 
 	card->state = CARD_STATE_READY;
 
@@ -358,6 +369,7 @@ enum sd_init_error sd_init_card(struct card *card_out)
 	enum sd_init_error sd_init_error;
 	enum cmd_error cmd_error;
 	struct card_status cs;
+	struct scr scr;
 
 	serial_log("Initialising SD...");
 	mzero(card_out, sizeof(struct card));
@@ -394,12 +406,29 @@ enum sd_init_error sd_init_card(struct card *card_out)
 
 	card_out->state = CARD_STATE_TRANSFER;
 
-	sd_init_error = sd_set_4bit_data_bus_width(card_out->rca);
-	if (sd_init_error != SD_INIT_ERROR_NONE)
-		return sd_init_error;
-
 	sd_enable_transfer_interrupts();
-	serial_log("Successfully initialised SD");
+
+	/* Check card's configuration register for support info. */
+	cmd_error = sd_issue_acmd51(card_out->rca, &scr);
+	if (cmd_error != CMD_ERROR_NONE) 
+		return SD_INIT_ERROR_ISSUE_CMD;
+	card_out->cmd23_supported = scr.cmd23_supported;
+
+	/* Set 4-bit data bus width if supported. */
+	if (scr.bus_widths&SCR_BUS_WIDTHS_4BIT) {
+		sd_disable_transfer_interrupts();
+
+		sd_init_error = sd_set_4bit_data_bus_width(card_out->rca);
+		if (sd_init_error != SD_INIT_ERROR_NONE)
+			return sd_init_error;
+
+		sd_enable_transfer_interrupts();
+	}
+	serial_log("Successfully initialised SD: %s capacity, CMD23 %s, "
+		   "%s-bit data bus width, 25 MHz clock, default speed bus mode",
+		   card_out->sdhc_or_sdxc ? "SDHC/SDXC" : "SDSC",
+		   card_out->cmd23_supported ? "supported" : "not supported",
+		   scr.bus_widths&SCR_BUS_WIDTHS_4BIT ? "4" : "1");
 	return SD_INIT_ERROR_NONE;
 }
 
@@ -413,7 +442,6 @@ enum sd_init_error sd_init(void)
 static bool _sd_read_blocks_card(byte_t *ram_dest_addr, void *sd_src_lba, uint16_t nblks, 
 				 struct card *card)
 {
-	struct blksizecnt blkszcnt;
 	enum cmd_error error = CMD_ERROR_NONE;
 
 	if (!address_aligned(ram_dest_addr, 4)) {
@@ -422,25 +450,29 @@ static bool _sd_read_blocks_card(byte_t *ram_dest_addr, void *sd_src_lba, uint16
 		return false;
 	}
 	/* Convert LBA / block unit address to byte unit address for SDSC. */
-	// TODO test this works
 	if (!card->sdhc_or_sdxc) 
 		sd_src_lba = (void *)((int)sd_src_lba*READ_BLKSZ);
 	
-	/* Set block size and count. */
-	mzero(&blkszcnt, sizeof(blkszcnt));
-	blkszcnt.blksize = READ_BLKSZ;
-	blkszcnt.blkcnt = nblks;
-	register_set(&sd_access, BLKSIZECNT, cast_bitfields(blkszcnt, uint32_t));
-
 	if (nblks == 1) {
 		/* Single block transfer. */
 		error = sd_issue_cmd17(ram_dest_addr, sd_src_lba);
 	} else if (nblks > 1) {
 		/* Multi block transfer. */
-		/* TODO ensure CMD23 is supported? */
-		error = sd_issue_cmd(CMD_IDX_SET_BLOCK_COUNT, nblks);
-		if (error == CMD_ERROR_NONE) 
-			error = sd_issue_cmd18(ram_dest_addr, sd_src_lba, nblks);
+		if (card->cmd23_supported) {
+			/* Read all blocks in one multi block transfer. */
+			error = sd_issue_cmd(CMD_IDX_SET_BLOCK_COUNT, nblks);
+			if (error == CMD_ERROR_NONE) 
+				error = sd_issue_cmd18(ram_dest_addr, sd_src_lba, nblks);
+		} else {
+			/* Read all blocks over multiple single block transfers. */
+			for (; nblks; --nblks) {
+				error = sd_issue_cmd17(ram_dest_addr, sd_src_lba);
+				if (error != CMD_ERROR_NONE)
+					break;
+				ram_dest_addr += READ_BLKSZ;
+				sd_src_lba += card->sdhc_or_sdxc ? 1 : READ_BLKSZ;  /* As above. */
+			}
+		}
 	}
 	if (error != CMD_ERROR_NONE) 
 		serial_log("SD read error: RAM dest addr %08x, SD src lba %08x, number "

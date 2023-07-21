@@ -8,7 +8,6 @@
 #include "../help.h"
 #include "../timer.h"
 #include "../debug.h"
-#include "../bits.h"
 
 /*
  * Arguments used by some addressed commands requiring
@@ -68,7 +67,8 @@ struct command commands[] = {
 	{ CMD_IDX_SET_BLOCK_COUNT,     CMD_TYPE_AC,   CMD_RESPONSE_R1_NORMAL },
 	{ CMD_IDX_APP_CMD,             CMD_TYPE_AC,   CMD_RESPONSE_R1_NORMAL },
 	{ ACMD_IDX_SET_BUS_WIDTH,      CMD_TYPE_AC,   CMD_RESPONSE_R1_NORMAL },
-	{ ACMD_IDX_SD_SEND_OP_COND,    CMD_TYPE_BCR,  CMD_RESPONSE_R3_OCR_REG }
+	{ ACMD_IDX_SD_SEND_OP_COND,    CMD_TYPE_BCR,  CMD_RESPONSE_R3_OCR_REG },
+	{ ACMD_IDX_SD_SEND_SCR,	       CMD_TYPE_ADTC, CMD_RESPONSE_R1_NORMAL }
 };
 
 static struct command *get_command(enum cmd_index idx)
@@ -139,7 +139,8 @@ static void set_cmdtm_idx_and_crc_chk(struct command *cmd, struct cmdtm *cmdtm)
 static void set_cmdtm_transfer_mode(struct command *cmd, struct cmdtm *cmdtm)
 {
 	/* As more commands are implemented they will need to be added in conditions here. */
-	if (cmd->index == CMD_IDX_READ_SINGLE_BLOCK || cmd->index == CMD_IDX_READ_MULTIPLE_BLOCK)
+	if (cmd->index == CMD_IDX_READ_SINGLE_BLOCK || cmd->index == CMD_IDX_READ_MULTIPLE_BLOCK ||
+	    cmd->index == ACMD_IDX_SD_SEND_SCR)
 		cmdtm->data_transfer_direction = CMDTM_TM_DAT_DIR_READ;
 	if (cmd->index == CMD_IDX_READ_MULTIPLE_BLOCK) {
 		cmdtm->block_cnt_en = true;
@@ -359,7 +360,7 @@ enum cmd_error sd_issue_cmd8(void)
 /* Whether the host supports SDHC/SDXC. */
 #define ACMD41_HOST_CAPACITY_SUPPORT_SHIFT 30
 
-enum cmd_error sd_issue_acmd41(bool host_capacity_support, bool *card_capacity_support_out)
+enum cmd_error sd_issue_acmd41(bool *card_capacity_support_out)
 {
 	uint32_t args, ocr;
 	enum cmd_error error;
@@ -373,7 +374,6 @@ enum cmd_error sd_issue_acmd41(bool host_capacity_support, bool *card_capacity_s
 	 * non-zero ACMD41 is init ACMD41. Do inquiry first so can get the card's voltage window, 
 	 * since if it doesn't support the voltage window the init ACMD41 would put the card into 
 	 * the inactive state.
-	 * TODO confirm when get a card
 	 */
 	mzero(&args, sizeof(args));
 	error = sd_issue_acmd(ACMD_IDX_SD_SEND_OP_COND, args, rca);
@@ -389,7 +389,7 @@ enum cmd_error sd_issue_acmd41(bool host_capacity_support, bool *card_capacity_s
 
 	/* Set args for init ACMD41. */
 	args |= OCR_VDD_2V7_TO_3V6;
-	args |= host_capacity_support<<ACMD41_HOST_CAPACITY_SUPPORT_SHIFT;
+	args |= true<<ACMD41_HOST_CAPACITY_SUPPORT_SHIFT;
 
 	/* Wait for card to finish power up, which should take at most 1 second from the first init ACMD41. */
 	ts = timer_poll_start(1000);
@@ -479,6 +479,17 @@ enum cmd_error sd_issue_acmd6(int rca, bool four_bit)
 	return sd_issue_acmd(ACMD_IDX_SET_BUS_WIDTH, cast_bitfields(args, uint32_t), rca);
 }
 
+/* Set block size and block count for data transfer. */
+static void set_blkszcnt(int blksz, int blkcnt)
+{
+	struct blksizecnt blkszcnt;
+
+	mzero(&blkszcnt, sizeof(blkszcnt));
+	blkszcnt.blksize = blksz;
+	blkszcnt.blkcnt = blkcnt;
+	register_set(&sd_access, BLKSIZECNT, cast_bitfields(blkszcnt, uint32_t));
+}
+
 enum cmd_error sd_issue_read_cmd(enum cmd_index idx, byte_t *ram_dest_addr, void *sd_src_addr, int nblks)
 {
 	enum cmd_error error;
@@ -489,6 +500,8 @@ enum cmd_error sd_issue_read_cmd(enum cmd_index idx, byte_t *ram_dest_addr, void
 	byte_t *sd_data_addr = (byte_t *)(ARM_LO_MAIN_PERIPH_BASE_ADDR
 					  + sd_access.periph_base_off
 					  + sd_access.register_offsets[DATA]);
+
+	set_blkszcnt(READ_BLKSZ, nblks);
 
 	error = sd_issue_cmd(idx, (uint32_t)sd_src_addr);
 	if (error != CMD_ERROR_NONE)
@@ -535,4 +548,27 @@ enum cmd_error sd_issue_cmd17(byte_t *ram_dest_addr, void *sd_src_addr)
 enum cmd_error sd_issue_cmd18(byte_t *ram_dest_addr, void *sd_src_addr, int nblks)
 {
 	return sd_issue_read_cmd(CMD_IDX_READ_MULTIPLE_BLOCK, ram_dest_addr, sd_src_addr, nblks);
+}
+
+enum cmd_error sd_issue_acmd51(int rca, struct scr *scr_out)
+{
+	enum cmd_error error;	
+	uint32_t data;
+
+	mzero(scr_out, sizeof(struct scr));
+	/* The actual SCR register is 8 bytes, 4 of which is reserved and we don't need. */
+	set_blkszcnt(sizeof(struct scr)+sizeof(uint32_t), 1);
+
+	error = sd_issue_acmd(ACMD_IDX_SD_SEND_SCR, 0, rca);
+	if (error != CMD_ERROR_NONE) 
+		return error;
+	error = sd_wait_for_interrupt(INTERRUPT_READ_READY);
+	if (error != CMD_ERROR_NONE) 
+		return error;
+	data = bswap32(register_get(&sd_access, DATA));
+	mcopy(&data, scr_out, sizeof(struct scr));
+	/* Throw away the reserved part. */
+	register_get_out(&sd_access, DATA, &data);
+
+	return sd_wait_for_interrupt(INTERRUPT_TRANSFER_COMPLETE);
 }
