@@ -123,7 +123,7 @@ A work around for this is to use the `earlycon` command-line param for early ser
 `CONFIG_SERIAL_EARLYCON=y` is also set.
 
 Again, if the error occurs before the early serial console is initialised, e.g. if the kernel wasn't
-given a DTB, then you you may still not see any output. To work around this, look into using the
+given a DTB, then you may still not see any output. To work around this, look into using the
 following kernel configs.
 
 	CONFIG_DEBUG_LL=y
