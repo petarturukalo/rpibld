@@ -301,7 +301,7 @@ static enum sd_init_error sd_card_init_and_identify(struct card *card)
 		return SD_INIT_ERROR_ISSUE_CMD;
 
 	error = sd_issue_acmd41(&ccs);
-	if (error == CMD_ERROR_RESPONSE_CONTENTS || error == CMD_ERROR_GENERAL_TIMEOUT) 
+	if (error == CMD_ERROR_RESPONSE_CONTENTS) 
 		return SD_INIT_ERROR_UNUSABLE_CARD;
 	if (error != CMD_ERROR_NONE) 
 		return SD_INIT_ERROR_ISSUE_CMD;
