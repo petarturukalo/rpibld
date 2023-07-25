@@ -64,7 +64,6 @@ enum cmd_error {
  * @args: arguments optionally used by the command
  */
 enum cmd_error sd_issue_cmd(enum cmd_index idx, uint32_t args);
-void sd_isr(void);
 /* 
  * @idx: index of an application command
  * @rca: relative card address used as argument to CMD55
