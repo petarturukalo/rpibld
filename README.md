@@ -56,7 +56,7 @@ See [1] for building these files yourself.
 Note the default built DTB is incomplete and can't be used to boot successfully. This is because 
 it's expected this DTB is loaded by the Raspberry Pi firmware, which will modify it and complete its
 missing/empty properties before executing the kernel. Since this bootloader is what loads the DTB 
-instead of the firmware, the modifications are not done. To work around this, the modifications must 
+instead of the firmware, these modifications are not done. To work around this, the modifications must 
 be made to the device tree sources before compilation.
 
 The following lists the modifications required of the device tree sources in order for Linux to boot 
