@@ -3,11 +3,11 @@ objs=$(patsubst %.c, %.o, $(srcs))
 objs:=$(patsubst %.S, %.o, $(objs))
 deps=$(patsubst %.o, %.d, $(objs))
 # Cross compilation prefix.
-cross_prefix=arm-none-eabi-
+cross_prefix=
 linker_script=boot.ld
 # The MBR primary partition that the imager imaged and that the
 # bootloader will load the OS from.
-image_partition=3
+image_partition=
 CFLAGS=-nostdlib -r -march=armv7ve -Wunused -Werror=undef -Iinclude \
 	-DIMAGE_PARTITION=$(image_partition)
 LDFLAGS=-T $(linker_script) -static 
