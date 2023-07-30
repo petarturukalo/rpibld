@@ -68,7 +68,7 @@ of a kernel command line, it must specify the partition of the root filesystem, 
 specifying partition 2 as the root filesystem is
 `8250.nr_uarts=1 console=ttyS0,115200 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 fsck.repair=yes rootwait`.
 See [2] for a complete list and explanation of the kernel command-line parameters.
-2. The `reg` property of the `memory` node is empty and must be filled. I use 
+2. The `reg` property of the `/memory` node is empty and must be filled. I use 
 `reg = <0x00 0x00 0x3b400000 0x00 0x40000000 0x40000000>;`, which I got by looking at the device tree
 of a running Linux with decompilation command `dtc -I fs /sys/firmware/devicetree/base`. Note
 my Raspberry Pi is a 2 GB version: I have not tested this on a Pi with a different size of RAM, 
