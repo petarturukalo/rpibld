@@ -44,8 +44,7 @@
 
 /*
  * The heap starts at 256 MiB and is expected to be
- * grown upwards. This address is above the stacks,
- * which grow downwards.
+ * grown upwards. 
  */
 #define HEAP_RAM_ADDR 0x10000000
 
@@ -57,8 +56,8 @@
 
 /*
  * The addresses that the IRQ and supervisor (SVC) mode stacks start at.
- * Each has 1 MiB of stack space. They are 4-byte aligned as they won't 
- * work if not 4-byte aligned.
+ * Each has 1 MiB of stack space and grows downwards. They are 4-byte 
+ * aligned as they won't work if not 4-byte aligned. 
  */
 #define IRQ_STACK_START_ADDR 0x1f00000  /* 31 MiB. */
 #define SVC_STACK_START_ADDR 0x1e00000  /* 30 MiB. */
