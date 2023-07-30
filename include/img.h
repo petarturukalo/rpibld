@@ -23,7 +23,7 @@ enum item_id {
  * Storage for arbitrary data.
  *
  * @id: enum item_id identifier for what is stored in the data field
- * @itemsz: size of the data stored in the data field, in bytes, including
+ * @datasz: size of the data stored in the data field, in bytes, including
  *	SD block size alignment padding bytes
  *
  * The data field shall be padded to align the size of this to SD_BLKSZ so that
@@ -34,7 +34,7 @@ enum item_id {
  */
 struct item {
 	uint32_t id;
-	uint32_t itemsz;
+	uint32_t datasz;
 	uint8_t data[];
 };
 

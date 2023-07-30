@@ -115,14 +115,14 @@ static int round_up_multiple(int n, int m)
  * Uses realloc() to get new space for the item, so the return is the (potentially) 
  * new start address of the image. Return NULL on error.
  */
-static struct image *image_append_item(struct image *img, enum item_id id, int itemsz, void *data)
+static struct image *image_append_item(struct image *img, enum item_id id, int datasz, void *data)
 {
 	struct item *item;
 	/* Pad the item to ensure it's aligned to SD_BLKSZ. */
-	int itemsz_after_pad = round_up_multiple(sizeof(struct item)+itemsz, SD_BLKSZ)
+	int datasz_after_pad = round_up_multiple(sizeof(struct item)+datasz, SD_BLKSZ)
 			       - sizeof(struct item);
 
-	img = realloc(img, img->imgsz+(sizeof(struct item)+itemsz_after_pad));
+	img = realloc(img, img->imgsz+(sizeof(struct item)+datasz_after_pad));
 	if (!img) {
 		fprintf(stderr, "Error allocating memory: %s\n", strerror(errno));
 		return NULL;
@@ -130,12 +130,12 @@ static struct image *image_append_item(struct image *img, enum item_id id, int i
 	/* Create a new item at the current end of the image. */
 	item = (struct item *)((char *)img+img->imgsz);
 	item->id = id;
-	item->itemsz = itemsz_after_pad;
-	if (itemsz) 
-		memcpy(&item->data, data, itemsz);
+	item->datasz = datasz_after_pad;
+	if (datasz) 
+		memcpy(&item->data, data, datasz);
 
 	/* Update end of image to include new item. */
-	img->imgsz += sizeof(struct item)+itemsz_after_pad;
+	img->imgsz += sizeof(struct item)+datasz_after_pad;
 
 	return img;
 }

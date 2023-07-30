@@ -137,6 +137,11 @@ static char *stritem(enum item_id id)
 	}
 }
 
+static int itemsz(struct item *item)
+{
+	return sizeof(struct item)+item->datasz;
+}
+
 /*
  * Load an image item from the SD card into RAM.
  */
@@ -157,11 +162,11 @@ static struct item *load_item(enum item_id id, byte_t *ram_item_dest_addr,
 		signal_error(ERROR_IMAGE_CONTENTS);
 	}
 	/* Read rest of item. */
-	if (item->itemsz > SD_BLKSZ) {
-		if (!sd_read_bytes(ram_item_dest_addr, sd_item_src_lba, item->itemsz))
+	if (itemsz(item) > SD_BLKSZ) {
+		if (!sd_read_bytes(ram_item_dest_addr, sd_item_src_lba, itemsz(item)))
 			signal_error(ERROR_SD_READ);
 	}
-	serial_log("Successfully loaded %s item, data size %u bytes", stritem(id), item->itemsz);
+	serial_log("Successfully loaded %s item, data size %u bytes", stritem(id), item->datasz);
 	return item;
 }
 
@@ -177,9 +182,9 @@ static void load_image_items(uint32_t img_part_lba)
 	uint32_t item_lba = img_part_lba+1;
 	struct item *item = load_item(ITEM_ID_KERNEL, (byte_t *)(KERN_RAM_ADDR-sizeof(struct item)), 
 				      (void *)item_lba);
-	if (KERN_RAM_ADDR+item->itemsz >= DTB_RAM_ADDR) {
+	if (KERN_RAM_ADDR+item->datasz >= DTB_RAM_ADDR) {
 		serial_log("Error: kernel size %u bytes overflows into device tree blob",
-			   item->itemsz);
+			   item->datasz);
 		signal_error(ERROR_KERN_OVERFLOW);
 	}
 	if (*(uint32_t *)(KERN_RAM_ADDR+ZIMAGE_MAGIC_OFF) != ZIMAGE_MAGIC) {
@@ -188,7 +193,7 @@ static void load_image_items(uint32_t img_part_lba)
 	}
 	serial_log("Successfully validated kernel");
 
-	item_lba += bytes_to_blocks(item->itemsz);
+	item_lba += bytes_to_blocks(itemsz(item));
 	item = load_item(ITEM_ID_DEVICE_TREE_BLOB, (byte_t *)(DTB_RAM_ADDR-sizeof(struct item)), 
 			 (void *)item_lba);
 	if (bswap32(*(uint32_t *)DTB_RAM_ADDR) != DTB_MAGIC) {
@@ -198,7 +203,7 @@ static void load_image_items(uint32_t img_part_lba)
 	serial_log("Successfully validated device tree blob");
 
 	/* Validate that the terminating item is there. */
-	item_lba += bytes_to_blocks(item->itemsz);
+	item_lba += bytes_to_blocks(itemsz(item));
 	item = load_item(ITEM_ID_END, heap_get_base_address(), (void *)item_lba);
 }
 
