@@ -182,7 +182,7 @@ static void load_image_items(uint32_t img_part_lba)
 	uint32_t item_lba = img_part_lba+1;
 	struct item *item = load_item(ITEM_ID_KERNEL, (byte_t *)(KERN_RAM_ADDR-sizeof(struct item)), 
 				      (void *)item_lba);
-	if (KERN_RAM_ADDR+item->datasz >= DTB_RAM_ADDR) {
+	if (KERN_RAM_ADDR+item->datasz > DTB_RAM_ADDR) {
 		serial_log("Error: kernel size %u bytes overflows into device tree blob",
 			   item->datasz);
 		signal_error(ERROR_KERN_OVERFLOW);
