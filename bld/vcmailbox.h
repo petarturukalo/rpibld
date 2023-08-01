@@ -54,7 +54,7 @@ enum vcmailbox_error {
  * @args: arguments input to the request
  * @args_sz: size of args buffer
  * @ret: where to store output of the request
- * @args_sz: size of ret buffer
+ * @ret_sz: size of ret buffer
  */
 struct tag_request {
 	enum tag_id id;
