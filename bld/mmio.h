@@ -46,8 +46,7 @@ struct periph_access {
 };
 
 /*
- * Set/get the value of a 32-bit memory-mapped register. The regular functions here are 32-bit;
- * functions with suffix _nbit are n-bit.
+ * Set/get the value of a 32-bit memory-mapped register.
  *
  * @register_select: an index into periph_access.register_offsets for selecting the register
  *	to access
