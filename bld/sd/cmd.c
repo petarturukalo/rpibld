@@ -422,7 +422,7 @@ enum cmd_error sd_issue_cmd3(int *rca_out)
 		bits_t cs_com_crc_error : 1;
 		/* End card_status subset. */
 		bits_t rca : 16;
-	} __attribute((packed)) resp;
+	} __attribute__((packed)) resp;
 	enum cmd_error error;
 
 	error = sd_issue_cmd(CMD_IDX_SEND_RELATIVE_ADDR, 0);
