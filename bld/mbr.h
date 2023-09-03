@@ -16,7 +16,7 @@
  */
 bool mbr_magic(byte_t *mbr_base_addr);
 /*
- * Get whether the partition a valid primary partition, a number in
+ * Get whether the partition is a valid primary partition, a number in
  * range 1 to 4 (both ends inclusive).
  */
 bool mbr_partition_valid(int partition);
