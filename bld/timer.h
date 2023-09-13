@@ -24,7 +24,7 @@ void timer_isr(void);
 /*
  * Pause the CPU, putting it in an idle state for a milliseconds/microseconds amount of time.
  *
- * WARNING do not sleep for a vert short microseconds amount of time, e.g. less than 5 microseconds
+ * WARNING do not sleep for a very short microseconds amount of time, e.g. less than 5 microseconds
  * from testing, because of potential race conditions: either the interrupt won't be triggered or it 
  * will be triggered before sleeping, resulting in waiting for an interrupt that has already interrupted. 
  * The issue also seems to arise sometimes when sleeping for ~20 microseconds. To be on the safe side 
