@@ -129,7 +129,6 @@ static void sd_assert_card_power(void)
  *
  * Signal error with error ERROR_VC_NOT_INIT_MMC if the assertion fails.
  */
-
 static void sd_assert_vc_init(void)
 {
 	sd_assert_base_clock();
