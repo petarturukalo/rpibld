@@ -86,12 +86,9 @@ static char *file_read(char *fpath, int *fsz_out)
 		cur_mem += n;
 	if (n == -1) {
 		fprintf(stderr, "Error reading from file %s: %s\n", fpath, strerror(errno));
-		goto file_read_cleanup2;
+		freep(&mem);
 	}
-	goto file_read_cleanup1;
 
-file_read_cleanup2:
-	freep(&mem);
 file_read_cleanup1:
 	close(fd);
 file_read_cleanup0:
