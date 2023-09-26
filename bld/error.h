@@ -17,7 +17,7 @@
  *	not a valid MBR primary partition number
  * @ERROR_NO_IMAGE_MAGIC: no magic identifying an image found at the start of the
  *	image partition
- * @ERROR_IMAGE_OVERFLOW: size of image is greater than the boot partition
+ * @ERROR_IMAGE_OVERFLOW: size of image is greater than the image partition
  * @ERROR_IMAGE_CONTENTS: the contents of the image was not as expected
  * @ERROR_KERN_OVERFLOW: the size of the kernel file loaded into RAM is too big
  *	and overflowed into the device tree blob's area of RAM
