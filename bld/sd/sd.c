@@ -416,10 +416,11 @@ enum sd_init_error sd_init(void)
 	return sd_init_card(&card);
 }
 
-static bool _sd_read_blocks_card(byte_t *ram_dest_addr, void *sd_src_lba, uint16_t nblks, 
+static bool _sd_read_blocks_card(byte_t *ram_dest_addr, uint32_t sd_src_lba, uint16_t nblks, 
 				 struct card *card)
 {
 	enum cmd_error error = CMD_ERROR_NONE;
+	void *sd_src_addr = (void *)sd_src_lba;
 
 	if (!address_aligned(ram_dest_addr, 4)) {
 		serial_log("SD read error: RAM destination address %08x not 4-byte aligned",
@@ -428,36 +429,36 @@ static bool _sd_read_blocks_card(byte_t *ram_dest_addr, void *sd_src_lba, uint16
 	}
 	/* Convert LBA / block unit address to byte unit address for SDSC. */
 	if (!card->sdhc_or_sdxc) 
-		sd_src_lba = (void *)((int)sd_src_lba*READ_BLKSZ);
+		sd_src_addr = (void *)(sd_src_lba*READ_BLKSZ);
 	
 	if (nblks == 1) {
 		/* Single block transfer. */
-		error = sd_issue_cmd17(ram_dest_addr, sd_src_lba);
+		error = sd_issue_cmd17(ram_dest_addr, sd_src_addr);
 	} else if (nblks > 1) {
 		/* Multi block transfer. */
 		if (card->cmd23_supported) {
 			/* Read all blocks in one multi block transfer. */
 			error = sd_issue_cmd(CMD_IDX_SET_BLOCK_COUNT, nblks);
 			if (error == CMD_ERROR_NONE) 
-				error = sd_issue_cmd18(ram_dest_addr, sd_src_lba, nblks);
+				error = sd_issue_cmd18(ram_dest_addr, sd_src_addr, nblks);
 		} else {
 			/* Read all blocks over multiple single block transfers. */
 			for (; nblks; --nblks) {
-				error = sd_issue_cmd17(ram_dest_addr, sd_src_lba);
+				error = sd_issue_cmd17(ram_dest_addr, sd_src_addr);
 				if (error != CMD_ERROR_NONE)
 					break;
 				ram_dest_addr += READ_BLKSZ;
-				sd_src_lba += card->sdhc_or_sdxc ? 1 : READ_BLKSZ;  /* As above. */
+				sd_src_addr += card->sdhc_or_sdxc ? 1 : READ_BLKSZ;  /* As above. */
 			}
 		}
 	}
 	if (error != CMD_ERROR_NONE) 
-		serial_log("SD read error: RAM dest addr %08x, SD src lba %08x, number "
-			   "of blocks %u", ram_dest_addr, sd_src_lba, nblks);
+		serial_log("SD read error: RAM dest addr %08x, SD src addr %08x, number "
+			   "of blocks %u", ram_dest_addr, sd_src_addr, nblks);
 	return error == CMD_ERROR_NONE;
 }
 
-static bool sd_read_blocks_card(byte_t *ram_dest_addr, void *sd_src_lba, int nblks, 
+static bool sd_read_blocks_card(byte_t *ram_dest_addr, uint32_t sd_src_lba, int nblks, 
 				struct card *card)
 {
 	bool read_ok;
@@ -481,7 +482,7 @@ static bool sd_read_blocks_card(byte_t *ram_dest_addr, void *sd_src_lba, int nbl
 	return true;
 }
 
-bool sd_read_blocks(byte_t *ram_dest_addr, void *sd_src_lba, int nblks)
+bool sd_read_blocks(byte_t *ram_dest_addr, uint32_t sd_src_lba, int nblks)
 {
 	return sd_read_blocks_card(ram_dest_addr, sd_src_lba, nblks, &card);
 }
@@ -494,7 +495,7 @@ int bytes_to_blocks(int bytes)
 	return nblks;
 }
 
-bool sd_read_bytes(byte_t *ram_dest_addr, void *sd_src_lba, int bytes)
+bool sd_read_bytes(byte_t *ram_dest_addr, uint32_t sd_src_lba, int bytes)
 {
 	int nblks = bytes_to_blocks(bytes);
 	return sd_read_blocks(ram_dest_addr, sd_src_lba, nblks);

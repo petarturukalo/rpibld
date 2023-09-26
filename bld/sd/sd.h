@@ -41,11 +41,11 @@ enum sd_init_error sd_init(void);
  *
  * Return whether the read was successful.
  */
-bool sd_read_blocks(byte_t *ram_dest_addr, void *sd_src_lba, int nblks);
+bool sd_read_blocks(byte_t *ram_dest_addr, uint32_t sd_src_lba, int nblks);
 /*
  * Read a number of bytes from the SD card into RAM.
  */
-bool sd_read_bytes(byte_t *ram_dest_addr, void *sd_src_lba, int bytes);
+bool sd_read_bytes(byte_t *ram_dest_addr, uint32_t sd_src_lba, int bytes);
 
 /*
  * Get the number of blocks required to read a number of bytes.

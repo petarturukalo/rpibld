@@ -76,7 +76,7 @@ static byte_t *load_mbr(void)
 
 	serial_log("Loading MBR...");
 
-	if (!sd_read_blocks(mbr_base_addr, (void *)0, 1))
+	if (!sd_read_blocks(mbr_base_addr, 0, 1))
 		signal_error(ERROR_SD_READ);
 	if (!mbr_magic(mbr_base_addr)) {
 		serial_log("Error: couldn't find MBR on SD card: no MBR magic");
@@ -105,7 +105,7 @@ static uint32_t load_image_head(byte_t *mbr_base_addr)
 	serial_log("Loading image head from partition %u", IMAGE_PARTITION);
 
 	/* Read first block of image from image partition into RAM. */
-	if (!sd_read_blocks((byte_t *)img, (void *)img_part_lba, 1))
+	if (!sd_read_blocks((byte_t *)img, img_part_lba, 1))
 		signal_error(ERROR_SD_READ);
 	if (img->magic != IMG_MAGIC) {
 		serial_log("Error: couldn't find image at start of partition %u: "
@@ -146,7 +146,7 @@ static int itemsz(struct item *item)
  * Load an image item from the SD card into RAM.
  */
 static struct item *load_item(enum item_id id, byte_t *ram_item_dest_addr, 
-			      void *sd_item_src_lba)
+			      uint32_t sd_item_src_lba)
 {
 	struct item *item;
 
@@ -181,7 +181,7 @@ static void load_image_items(uint32_t img_part_lba)
 	 */
 	uint32_t item_lba = img_part_lba+1;
 	struct item *item = load_item(ITEM_ID_KERNEL, (byte_t *)(KERN_RAM_ADDR-sizeof(struct item)), 
-				      (void *)item_lba);
+				      item_lba);
 	if (KERN_RAM_ADDR+item->datasz > DTB_RAM_ADDR) {
 		serial_log("Error: kernel size %u bytes overflows into device tree blob",
 			   item->datasz);
@@ -195,7 +195,7 @@ static void load_image_items(uint32_t img_part_lba)
 
 	item_lba += bytes_to_blocks(itemsz(item));
 	item = load_item(ITEM_ID_DEVICE_TREE_BLOB, (byte_t *)(DTB_RAM_ADDR-sizeof(struct item)), 
-			 (void *)item_lba);
+			 item_lba);
 	if (bswap32(*(uint32_t *)DTB_RAM_ADDR) != DTB_MAGIC) {
 		serial_log("Error: couldn't find device tree blob magic");
 		signal_error(ERROR_IMAGE_CONTENTS);
@@ -204,7 +204,7 @@ static void load_image_items(uint32_t img_part_lba)
 
 	/* Validate that the terminating item is there. */
 	item_lba += bytes_to_blocks(itemsz(item));
-	item = load_item(ITEM_ID_END, heap_get_base_address(), (void *)item_lba);
+	item = load_item(ITEM_ID_END, heap_get_base_address(), item_lba);
 }
 
 static void boot_kernel(void)
