@@ -49,10 +49,8 @@
 #define HEAP_RAM_ADDR 0x10000000
 
 /* Addresses in RAM that the kernel / device tree blob are loaded to. */
-/* 128 MiB. */
-#define DTB_RAM_ADDR  0x8000000
-/* 32 MiB. */
-#define KERN_RAM_ADDR 0x2000000
+#define DTB_RAM_ADDR  0x8000000  /* 128 MiB. */
+#define KERN_RAM_ADDR 0x2000000  /* 32 MiB. */
 
 /*
  * The addresses that the IRQ and supervisor (SVC) mode stacks start at.

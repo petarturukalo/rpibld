@@ -47,7 +47,7 @@ struct item {
  *	secondary storage. This will have value IMG_MAGIC.
  * @imgsz: size of the entire image in bytes, including the last zero item, etc.
  * @items: the separate OS files/data stored in the image. This is terminated
- *	by an item with ID ITEM_ID_END (its item size shall be 0).
+ *	by an item with ID ITEM_ID_END (its data size shall be 0).
  *	All items start at an offset that is a multiple of SD_BLKSZ, meaning each
  *	appears at the start of a block/LBA, and is able to be addressed by a
  *	SD read operation.
