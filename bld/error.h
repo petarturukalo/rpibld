@@ -9,7 +9,7 @@
 /*
  * @ERROR_VCMAILBOX: error using the VideoCore mailbox
  * @ERROR_VC_NOT_INIT_MMC: the VideoCore firmware didn't intialise
- *	MMC as expected (see mmc_assert_vc_init() for more info)
+ *	MMC as expected (see sd_assert_vc_init() for more info)
  * @ERROR_INFINITE_LOOP: see while_cond_timeout_infinite()
  * @ERROR_VSNPRINTF: Vsnprintf() failed
  * @ERROR_SD_INIT: failed to initialise the SD card with call to sd_init()
