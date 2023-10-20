@@ -55,15 +55,15 @@ static struct periph_access timer_access = {
 static bool queued_timer_irq_serviced;
 
 /*
- * Queue an interrupt request on a system timer channel 1 to trigger at a 
+ * Queue an interrupt request on system timer channel 1 to trigger at a 
  * microseconds amount of time after the current time. 
  *
  * Only one interrupt can be "queued" at a time. If a second call is made 
  * to this without the first triggering an interrupt, the first queued interrupt 
  * is lost and overwritten with the second, e.g. if this is called once to queue
  * an interrupt in 5 seconds, then 2 seconds pass, and this is called again to
- * queue another interrupt, an interrupt won't trigger until another 5 seconds has
- * passed (7 seconds total elapsed).
+ * queue another interrupt in 5 seconds, an interrupt won't trigger until another 
+ * 5 seconds has passed (7 seconds total elapsed).
  */
 static void timer_queue_irq(int microseconds)
 {
@@ -75,7 +75,7 @@ static void timer_queue_irq(int microseconds)
 }
 
 /*
- * Service an interrupt request on a system timer channel 1 by clearing the interrupt.
+ * Service an interrupt request on system timer channel 1 by clearing the interrupt.
  */
 void timer_isr(void)
 {	
