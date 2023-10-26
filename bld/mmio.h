@@ -50,6 +50,9 @@ struct periph_access {
  *
  * @register_select: an index into periph_access.register_offsets for selecting the register
  *	to access
+ *
+ * The pointer versions are for use with packed bit-field structs of 32-bit size. 
+ * They take a void * to avoid having to cast. 
  */
 void register_set(struct periph_access *periph, int register_select, uint32_t value);
 void register_set_ptr(struct periph_access *periph, int register_select, void *value);

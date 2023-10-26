@@ -379,7 +379,7 @@ enum cmd_error sd_issue_acmd41(bool *card_capacity_support_out)
 	error = sd_issue_acmd(ACMD_IDX_SD_SEND_OP_COND, args, rca);
 	if (error != CMD_ERROR_NONE)
 		return error;
-	register_get_out(&sd_access, RESP0, &ocr);
+	ocr = register_get(&sd_access, RESP0);
 	/* Assert the card supports the voltage range. */
 	if (ocr&OCR_VDD_2V7_TO_3V6 != OCR_VDD_2V7_TO_3V6) {
 		serial_log("SD cmd error: app cmd 41: card does not support the voltage range: "
@@ -399,7 +399,7 @@ enum cmd_error sd_issue_acmd41(bool *card_capacity_support_out)
 		error = sd_issue_acmd(ACMD_IDX_SD_SEND_OP_COND, args, rca);
 		if (error != CMD_ERROR_NONE)
 			return error;
-		register_get_out(&sd_access, RESP0, &ocr);
+		ocr = register_get(&sd_access, RESP0);
 	} while (!(ocr&OCR_CARD_POWER_UP_STATUS) && !timer_poll_done(ts));
 
 	if (ocr&OCR_CARD_POWER_UP_STATUS) {
@@ -568,7 +568,7 @@ enum cmd_error sd_issue_acmd51(int rca, struct scr *scr_out)
 	data = bswap32(register_get(&sd_access, DATA));
 	mcopy(&data, scr_out, sizeof(struct scr));
 	/* Throw away the reserved part. */
-	register_get_out(&sd_access, DATA, &data);
+	data = register_get(&sd_access, DATA);
 
 	return sd_wait_for_interrupt(INTERRUPT_TRANSFER_COMPLETE);
 }
