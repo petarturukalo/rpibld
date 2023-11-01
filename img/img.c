@@ -16,7 +16,7 @@
 
 #define RDWR_SZ 4096
 
-void print_usage(void)
+static void print_usage(void)
 {
 	printf("Usage: 'imager <part> <kern> <dtb>' where <part> is the block\n"
 	       "device partition for a MBR primary partition, e.g. /dev/sdc2, and\n"
@@ -30,7 +30,7 @@ void print_usage(void)
 /*
  * Get the size of a file in bytes. Return -1 on error.
  */
-int filesz(int fd)
+static int filesz(int fd)
 {
 	struct stat stat;
 
