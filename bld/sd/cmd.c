@@ -233,11 +233,11 @@ static bool sd_cmd_has_card_status_response(struct command *cmd)
  */
 static bool sd_card_status_error_bit_set(struct card_status *cs)
 {
-	return  cs->ake_seq_error || cs->wp_erase_skip || cs->csd_overwrite ||
-		cs->error || cs->cc_error || cs->card_ecc_failed || cs->illegal_command ||
-		cs->com_crc_error || cs->lock_unlock_failed || cs->wp_violation || 
-		cs->erase_param || cs->erase_seq_error || cs->block_len_error || 
-		cs->address_error || cs->out_of_range;
+	return cs->ake_seq_error || cs->wp_erase_skip || cs->csd_overwrite ||
+	       cs->error || cs->cc_error || cs->card_ecc_failed || cs->illegal_command ||
+	       cs->com_crc_error || cs->lock_unlock_failed || cs->wp_violation || 
+	       cs->erase_param || cs->erase_seq_error || cs->block_len_error || 
+	       cs->address_error || cs->out_of_range;
 }
 
 /* 
