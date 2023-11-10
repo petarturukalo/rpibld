@@ -19,7 +19,7 @@
 #define MBR_LAST_PART_NR  4
 
 #define PART_ENTRY_SZ 16
-/* Partition entry offsets to fields and sizes of fields. */
+/* Partition entry offsets to fields. */
 #define PART_ENTRY_LBA_OFF     0x08
 #define PART_ENTRY_NBLOCKS_OFF 0x0c
 
