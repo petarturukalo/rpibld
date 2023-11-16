@@ -8,7 +8,7 @@
 
 /*
  * BITS - Get a 32-bit value with all bits between start and stop high.
- *	Both start and end bits are inclusive.
+ *	Both start and stop bits are inclusive.
  * BIT - Get a 32-bit value with only the nth bit high.
  *  
  * Least significant bit is bit 0 and most significant bit is bit 31.
