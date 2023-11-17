@@ -358,7 +358,7 @@ enum cmd_error sd_issue_cmd8(void)
 
 /* ACMD41 argument fields. */
 /* Whether the host supports SDHC/SDXC. */
-#define ACMD41_HOST_CAPACITY_SUPPORT_SHIFT 30
+#define ACMD41_HOST_CAPACITY_SUPPORT	BIT(30)
 
 enum cmd_error sd_issue_acmd41(bool *card_capacity_support_out)
 {
@@ -389,7 +389,7 @@ enum cmd_error sd_issue_acmd41(bool *card_capacity_support_out)
 
 	/* Set args for init ACMD41. */
 	args |= OCR_VDD_2V7_TO_3V6;
-	args |= true<<ACMD41_HOST_CAPACITY_SUPPORT_SHIFT;
+	args |= ACMD41_HOST_CAPACITY_SUPPORT;
 
 	/* Wait for card to finish power up, which should take at most 1 second from the first init ACMD41. */
 	ts = timer_poll_start(1000);
