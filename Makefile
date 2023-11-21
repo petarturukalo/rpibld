@@ -8,11 +8,11 @@ linker_script=boot.ld
 # The MBR primary partition that the imager imaged and that the
 # bootloader will load the OS from.
 image_partition=
-CFLAGS=-nostdlib -r -march=armv7ve -Wunused -Iinclude
+CFLAGS=-c -march=armv7ve -Wunused -Iinclude
 ifdef image_partition
 CFLAGS+=-DIMAGE_PARTITION=$(image_partition)
 endif
-LDFLAGS=-T $(linker_script) -static 
+LDFLAGS=-T $(linker_script) -nostdlib
 
 bootloader: bld/bootloader.elf
 	$(cross_prefix)objcopy -O binary $< $@
