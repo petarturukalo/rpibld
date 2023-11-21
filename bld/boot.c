@@ -17,7 +17,7 @@
 #include "gic.h"
 
 #ifndef IMAGE_PARTITION
-#error IMAGE_PARTITION not defined. Set image_partition variable in Makfile.
+#error IMAGE_PARTITION not defined. Set image_partition variable in Makefile.
 #endif
 
 #define DTB_MAGIC 0xd00dfeed
