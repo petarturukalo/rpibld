@@ -16,6 +16,10 @@
 #include "int.h"
 #include "gic.h"
 
+#ifndef IMAGE_PARTITION
+#error IMAGE_PARTITION not defined. Set image_partition variable in Makfile.
+#endif
+
 #define DTB_MAGIC 0xd00dfeed
 /* Kernel zImage magic number and offset to it from start of the zImage. */
 #define ZIMAGE_MAGIC 0x016F2818
