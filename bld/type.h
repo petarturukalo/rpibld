@@ -9,17 +9,9 @@
 typedef unsigned int bits_t;
 typedef char byte_t;
 
-typedef unsigned char uint8_t;
-typedef unsigned short uint16_t;
-typedef unsigned int uint32_t;
-
-#define UINT16_MAX 65535
-
-typedef int bool;
-#define true 1
-#define false 0
-
-#define NULL ((void *)0)
+#include <stdint.h>
+#include <stdbool.h>
+#include <stddef.h>  /* For NULL. */
 
 /* 
  * Cast a struct variable containing only bitfields to an integral type of the
