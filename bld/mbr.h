@@ -1,9 +1,8 @@
 /*
+ * Copyright (C) 2023 Petar Turukalo
  * SPDX-License-Identifier: GPL-2.0
  *
  * Master boot record.
- *
- * Copyright (C) 2023 Petar Turukalo
  */
 #ifndef MBR_H
 #define MBR_H

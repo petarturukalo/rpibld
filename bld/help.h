@@ -1,9 +1,8 @@
 /*
+ * Copyright (C) 2023 Petar Turukalo
  * SPDX-License-Identifier: GPL-2.0
  *
  * General helper functions.
- *
- * Copyright (C) 2023 Petar Turukalo
  */
 #ifndef HELP_H
 #define HELP_H

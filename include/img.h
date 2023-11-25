@@ -1,11 +1,10 @@
 /*
+ * Copyright (C) 2023 Petar Turukalo
  * SPDX-License-Identifier: GPL-2.0
  *
  * Imager definitions shared between the bootloader and imager.
  * The imager stores an image on secondary storage and the bootloader
  * loads it.
- *
- * Copyright (C) 2023 Petar Turukalo
  */
 #ifndef IMG_H
 #define IMG_H

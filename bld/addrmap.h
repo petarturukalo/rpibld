@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2023 Petar Turukalo
  * SPDX-License-Identifier: GPL-2.0
  *
  * Address map. How the bootloader uses RAM. The following diagram 
@@ -36,8 +37,6 @@
  *   8 KiB +------------+
  *         |            |
  * 0 bytes +------------+
- *
- * Copyright (C) 2023 Petar Turukalo
  */
 #ifndef ADDRMAP_H
 #define ADDRMAP_H

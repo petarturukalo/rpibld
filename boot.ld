@@ -1,4 +1,7 @@
 /* 
+ * Copyright (C) 2023 Petar Turukalo
+ * SPDX-License-Identifier: GPL-2.0
+ *
  * The length of the binary is restricted so it doesn't overflow into other "sections" 
  * of RAM (see diagram in bld/addrmap.h for an explanation of these "sections"). The length
  * is calculated from 29 MiB - 8 KiB, the end of the svc stack's memory region minus the

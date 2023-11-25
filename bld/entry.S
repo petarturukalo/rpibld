@@ -1,9 +1,8 @@
 /*
  * SPDX-License-Identifier: GPL-2.0
+ * Copyright (C) 2023 Petar Turukalo
  * 
  * Entry point to the bootloader. 
- *
- * Copyright (C) 2023 Petar Turukalo
  */
 #include "addrmap.h"
 #include "bits.h"

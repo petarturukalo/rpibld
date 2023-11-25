@@ -1,7 +1,6 @@
 /*
- * SPDX-License-Identifier: GPL-2.0
- *
  * Copyright (C) 2023 Petar Turukalo
+ * SPDX-License-Identifier: GPL-2.0
  */
 #include "tag.h"
 #include "vcmailbox.h"

@@ -1,11 +1,10 @@
 /*
+ * Copyright (C) 2023 Petar Turukalo
  * SPDX-License-Identifier: GPL-2.0
  *
  * This source implements the following standards.
  * - SD Specifications Part 1 Physical Layer Specification Version 3.01
  * - SD Specifications Part A2 SD Host Controller Specification Version 3.00
- *
- * Copyright (C) 2023 Petar Turukalo
  */
 #include "sd.h"
 #include "../mmio.h"

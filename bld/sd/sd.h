@@ -1,9 +1,8 @@
 /*
+ * Copyright (C) 2023 Petar Turukalo
  * SPDX-License-Identifier: GPL-2.0
  *
  * Read access to SD (Secure Digital) secondary storage.
- *
- * Copyright (C) 2023 Petar Turukalo
  */
 #ifndef SD_H
 #define SD_H

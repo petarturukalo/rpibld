@@ -1,9 +1,8 @@
 /*
+ * Copyright (C) 2023 Petar Turukalo
  * SPDX-License-Identifier: GPL-2.0
  *
  * Access to memory-mapped I/O. 
- *
- * Copyright (C) 2023 Petar Turukalo
  */
 #ifndef MMIO_H
 #define MMIO_H

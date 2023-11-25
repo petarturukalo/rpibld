@@ -1,10 +1,9 @@
 /*
+ * Copyright (C) 2023 Petar Turukalo
  * SPDX-License-Identifier: GPL-2.0
  *
  * Control the green-coloured LED labelled 
  * "ACT" on the raspberry pi board.
- *
- * Copyright (C) 2023 Petar Turukalo
  */
 #ifndef LED_H
 #define LED_H

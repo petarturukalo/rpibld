@@ -1,9 +1,8 @@
 /*
+ * Copyright (C) 2023 Petar Turukalo
  * SPDX-License-Identifier: GPL-2.0
  *
  * VideoCore mailbox tag/property interface.
- *
- * Copyright (C) 2023 Petar Turukalo
  */
 #ifndef VCMAILBOX_H
 #define VCMAILBOX_H

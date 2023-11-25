@@ -1,9 +1,8 @@
 /*
+ * Copyright (C) 2023 Petar Turukalo
  * SPDX-License-Identifier: GPL-2.0
  *
  * Access to GPIO pins.
- *
- * Copyright (C) 2023 Petar Turukalo
  */
 #ifndef GPIO_H
 #define GPIO_H

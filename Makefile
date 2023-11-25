@@ -1,3 +1,6 @@
+# Copyright (C) 2023 Petar Turukalo
+# SPDX-License-Identifier: GPL-2.0
+
 srcs=$(shell find bld -name '*.[cS]' -print)
 objs=$(patsubst %.c, %.o, $(srcs))
 objs:=$(patsubst %.S, %.o, $(objs))
