@@ -23,8 +23,7 @@
  * An optional field width can be provided before the u, x conversion specifiers, 
  * e.g. "%[<field width>]u", which left pads the output to a minimum width of 
  * <field width>. By default padding is blank, unless the field width starts with
- * a 0, in which case padding is 0. For example, formatter "%08x" with argument
- * 0xf would print 0x00001111.
+ * a 0, in which case padding is 0.
  */
 void serial_log(char *fmt, ...);
 
