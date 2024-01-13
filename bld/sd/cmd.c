@@ -54,7 +54,7 @@ struct command {
 };
 
 /* List of implemented SD commands. */
-struct command commands[] = {
+static struct command commands[] = {
 	{ CMD_IDX_GO_IDLE_STATE,       CMD_TYPE_BC,   CMD_RESPONSE_NONE },
 	{ CMD_IDX_ALL_SEND_CID,        CMD_TYPE_BCR,  CMD_RESPONSE_R2_CID_OR_CSD_REG },
 	{ CMD_IDX_SEND_RELATIVE_ADDR,  CMD_TYPE_BCR,  CMD_RESPONSE_R6_PUBLISHED_RCA },
