@@ -30,9 +30,9 @@ run on the VideoCore/VPU, while the loaded "kernel" is run on the ARM CPU, and t
 official documentation available for the ARM CPU than the VPU.
 
 For more info see the following links.
-* https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#raspberry-pi-4-boot-flow
-* https://www.raspberrypi.com/documentation/computers/configuration.html#start-elf-start_x-elf-start_db-elf-start_cd-elf-start4-elf-start4x-elf-start4db-elf-start4cd-elf
-* https://www.raspberrypi.com/documentation/computers/configuration.html#kernel-files
+* https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#raspberry-pi-4-and-raspberry-pi-5-boot-flow 
+* https://www.raspberrypi.com/documentation/computers/configuration.html#start-elf
+* https://www.raspberrypi.com/documentation/computers/configuration.html#kernel-files-img 
 
 
 # Usage
