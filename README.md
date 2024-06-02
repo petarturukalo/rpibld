@@ -30,9 +30,9 @@ run on the VideoCore/VPU, while the loaded "kernel" is run on the ARM CPU, and t
 official documentation available for the ARM CPU than the VPU.
 
 For more info see the following links.
-* https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#raspberry-pi-4-and-raspberry-pi-5-boot-flow 
-* https://www.raspberrypi.com/documentation/computers/configuration.html#start-elf
-* https://www.raspberrypi.com/documentation/computers/configuration.html#kernel-files-img 
+- https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#raspberry-pi-4-and-raspberry-pi-5-boot-flow 
+- https://www.raspberrypi.com/documentation/computers/configuration.html#start-elf
+- https://www.raspberrypi.com/documentation/computers/configuration.html#kernel-files-img 
 
 
 # Usage
@@ -140,53 +140,53 @@ Technical documentation and other resources referenced when writing the source,
 which will help in understanding the source.
 
 **General**
-* [BCM2711 datasheet](https://datasheets.raspberrypi.com/bcm2711/bcm2711-peripherals.pdf): 
+- [BCM2711 datasheet](https://datasheets.raspberrypi.com/bcm2711/bcm2711-peripherals.pdf): 
 SoC used in the Raspberry Pi 4 Model B
-* [BCM2711 device tree source](https://github.com/raspberrypi/firmware): used to find some peripheral
+- [BCM2711 device tree source](https://github.com/raspberrypi/firmware): used to find some peripheral
 memory-mapped register base addresses not available in the BCM2711 datasheet, clock rates, 
 etc. To get the source download the linked repo and convert the Raspberry Pi 4 Model B 
 device tree blob to its source with device tree compiler command `dtc -I dtb -O dts boot/bcm2711-rpi-4-b.dtb`. 
 Note the addresses in the source are legacy master addresses (refer BCM2711 datasheet for more info).
-* https://elinux.org/BCM2835_datasheet_errata#p12: fixes of errors in BCM2711 datasheet mini UART documentation
+- https://elinux.org/BCM2835_datasheet_errata#p12: fixes of errors in BCM2711 datasheet mini UART documentation
 
 **ARM CPU**
-* [ARM Cortex-A Series Programmer's Guide for ARMv7-A](https://developer.arm.com/documentation/den0013/d):
+- [ARM Cortex-A Series Programmer's Guide for ARMv7-A](https://developer.arm.com/documentation/den0013/d):
 the 32-bit architecture that the bootloader is compiled to
-* [ARM Developer Suite Assembler Guide](https://developer.arm.com/documentation/dui0068/b): ARM assembly
+- [ARM Developer Suite Assembler Guide](https://developer.arm.com/documentation/dui0068/b): ARM assembly
 instruction reference
-* [ARM Cortex-A72 MPCore Processor Technical Reference Manual](https://developer.arm.com/documentation/100095/0003):
+- [ARM Cortex-A72 MPCore Processor Technical Reference Manual](https://developer.arm.com/documentation/100095/0003):
 the ARM processor running the bootloader. Contains helpful information on system registers.
-* [ARM Developer Suite Developer Guide](https://developer.arm.com/documentation/dui0056/d):
+- [ARM Developer Suite Developer Guide](https://developer.arm.com/documentation/dui0056/d):
 has extra info on interrupt handlers
-* [AAPCS arm procedure call standard](https://github.com/ARM-software/abi-aa/blob/844a79fd4c77252a11342709e3b27b2c9f590cf1/aapcs32/aapcs32.rst): 
+- [AAPCS arm procedure call standard](https://github.com/ARM-software/abi-aa/blob/844a79fd4c77252a11342709e3b27b2c9f590cf1/aapcs32/aapcs32.rst): 
 helpful to know which registers are safe to use when writing assembly that will be mixed with compiled C
 
 **VideoCore Mailboxes**  
 Official documentation on the VideoCore mailboxes is scarce. Although not all "official" the following 
 were still helpful (and just to reference concepts, not code).
-* https://github.com/raspberrypi/firmware/wiki/Mailboxes
-* https://jsandler18.github.io/extra/mailbox.html
-* https://jsandler18.github.io/extra/prop-channel.html
-* https://github.com/raspberrypi/linux/blob/rpi-6.1.y/include/soc/bcm2835/raspberrypi-firmware.h: 
+- https://github.com/raspberrypi/firmware/wiki/Mailboxes
+- https://jsandler18.github.io/extra/mailbox.html
+- https://jsandler18.github.io/extra/prop-channel.html
+- https://github.com/raspberrypi/linux/blob/rpi-6.1.y/include/soc/bcm2835/raspberrypi-firmware.h: 
 lists tags not documented in the wiki
-* https://github.com/raspberrypi/firmware/blob/master/extra/dt-blob.dts#L2456-L2462:
+- https://github.com/raspberrypi/firmware/blob/master/extra/dt-blob.dts#L2456-L2462:
 VC device tree GPIO expander pins
 
 **SD**
-* [BCM2835 Datasheet](https://datasheets.raspberrypi.com/bcm2835/bcm2835-peripherals.pdf):
+- [BCM2835 Datasheet](https://datasheets.raspberrypi.com/bcm2835/bcm2835-peripherals.pdf):
 SoC used by earlier Raspberry Pis such as the Raspberry Pi 1, but provides info on SD/MMC registers
 not available in the BCM2711 datasheet
-* [SD Host Controller Specification Version 3.00](https://www.sdcard.org/downloads/pls/archives/): 
+- [SD Host Controller Specification Version 3.00](https://www.sdcard.org/downloads/pls/archives/): 
 the host controller specification which the SD peripheral implements
-* [SD Physical Layer Specification Version 3.01](https://www.sdcard.org/downloads/pls/archives/):
+- [SD Physical Layer Specification Version 3.01](https://www.sdcard.org/downloads/pls/archives/):
 the physical layer specification which the SD peripheral implements
 
 **Other**
-* [Booting ARM Linux](https://docs.kernel.org/6.2/arm/booting.html): set up required to boot ARM Linux
-* [ARM stub](https://github.com/raspberrypi/tools/blob/master/armstubs/armstub7.S): code firmware places at address 
+- [Booting ARM Linux](https://docs.kernel.org/6.2/arm/booting.html): set up required to boot ARM Linux
+- [ARM stub](https://github.com/raspberrypi/tools/blob/master/armstubs/armstub7.S): code firmware places at address 
 0x0 start of RAM, which is executed before this bootloader
-* [CoreLink GIC-400 Generic Interrupt Controller Technical Reference Manual](https://developer.arm.com/documentation/ddi0471/latest/): 
+- [CoreLink GIC-400 Generic Interrupt Controller Technical Reference Manual](https://developer.arm.com/documentation/ddi0471/latest/): 
 useful in understanding the ARM stub GIC code
-* [ARM Generic Interrupt Controller Architecture Specification](https://developer.arm.com/documentation/ihi0069/h/):
+- [ARM Generic Interrupt Controller Architecture Specification](https://developer.arm.com/documentation/ihi0069/h/):
 contains definitions of register fields not present in the GIC-400 Technical Reference Manual
 
