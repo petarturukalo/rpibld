@@ -11,7 +11,7 @@ linker_script=boot.ld
 # The MBR primary partition that the imager imaged and that the
 # bootloader will load the OS from.
 image_partition=
-CFLAGS=-c -march=armv7ve -Wunused -Iinclude -ffreestanding
+CFLAGS=-c -march=armv7ve -Wunused -iquote include -ffreestanding
 ifdef image_partition
 CFLAGS+=-DIMAGE_PARTITION=$(image_partition)
 endif
@@ -30,7 +30,7 @@ bld/%.o: bld/%.[cS]
 
 
 imager: img/img.c include/img.h
-	gcc -Iinclude $< -o $@
+	gcc -iquote include $< -o $@
 
 
 clean:
