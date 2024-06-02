@@ -14,6 +14,7 @@
 #include "reg.h"
 #include "cmd.h"
 #include "../debug.h"
+#include "sd_blksz.h"
 
 /* 100 MHz. */
 #define EMMC2_EXPECTED_BASE_CLOCK_HZ 100000000
@@ -428,7 +429,7 @@ static bool _sd_read_blocks_card(byte_t *ram_dest_addr, uint32_t sd_src_lba, uin
 	}
 	/* Convert LBA / block unit address to byte unit address for SDSC. */
 	if (!card->sdhc_or_sdxc) 
-		sd_src_addr = (void *)(sd_src_lba*READ_BLKSZ);
+		sd_src_addr = (void *)(sd_src_lba*SD_BLKSZ);
 	
 	if (nblks == 1) {
 		/* Single block transfer. */
@@ -446,8 +447,8 @@ static bool _sd_read_blocks_card(byte_t *ram_dest_addr, uint32_t sd_src_lba, uin
 				error = sd_issue_cmd17(ram_dest_addr, sd_src_addr);
 				if (error != CMD_ERROR_NONE)
 					break;
-				ram_dest_addr += READ_BLKSZ;
-				sd_src_addr += card->sdhc_or_sdxc ? 1 : READ_BLKSZ;  /* As above. */
+				ram_dest_addr += SD_BLKSZ;
+				sd_src_addr += card->sdhc_or_sdxc ? 1 : SD_BLKSZ;  /* As above. */
 			}
 		}
 	}
@@ -475,7 +476,7 @@ static bool sd_read_blocks_card(byte_t *ram_dest_addr, uint32_t sd_src_lba, int 
 			return false;
 
 		nblks -= UINT16_MAX;
-		ram_dest_addr += READ_BLKSZ*UINT16_MAX;
+		ram_dest_addr += SD_BLKSZ*UINT16_MAX;
 		sd_src_lba += UINT16_MAX;
 	}
 	return true;
@@ -488,8 +489,8 @@ bool sd_read_blocks(byte_t *ram_dest_addr, uint32_t sd_src_lba, int nblks)
 
 int bytes_to_blocks(int bytes)
 {
-	int nblks = bytes/READ_BLKSZ;
-	if (bytes%READ_BLKSZ)
+	int nblks = bytes/SD_BLKSZ;
+	if (bytes%SD_BLKSZ)
 		++nblks;
 	return nblks;
 }

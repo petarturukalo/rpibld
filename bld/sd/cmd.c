@@ -7,6 +7,7 @@
 #include "../help.h"
 #include "../timer.h"
 #include "../debug.h"
+#include "sd_blksz.h"
 
 /*
  * Arguments used by some addressed commands requiring
@@ -500,7 +501,7 @@ enum cmd_error sd_issue_read_cmd(enum cmd_index idx, byte_t *ram_dest_addr, void
 					  + sd_access.periph_base_off
 					  + sd_access.register_offsets[DATA]);
 
-	set_blkszcnt(READ_BLKSZ, nblks);
+	set_blkszcnt(SD_BLKSZ, nblks);
 
 	error = sd_issue_cmd(idx, (uint32_t)sd_src_addr);
 	if (error != CMD_ERROR_NONE)
@@ -521,7 +522,7 @@ enum cmd_error sd_issue_read_cmd(enum cmd_index idx, byte_t *ram_dest_addr, void
 		if (error != CMD_ERROR_NONE) 
 			goto sd_issue_read_cmd_cleanup;
 		/* Copy read block from host buffer to RAM. */
-		__asm__("mov r6, #" MSTRFY(READ_BLKSZ) "\n\t"
+		__asm__("mov r6, #" MSTRFY(SD_BLKSZ) "\n\t"
 			"read_data:\n\t"
 			"ldr r7, [r4]\n\t"
 			"str r7, [r5]\n\t"

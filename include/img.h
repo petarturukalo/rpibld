@@ -9,8 +9,9 @@
 #ifndef IMG_H
 #define IMG_H
 
+#include "sd_blksz.h"
+
 #define IMG_MAGIC 0xF00BA12
-#define SD_BLKSZ 512
 
 enum item_id {
 	ITEM_ID_END,  /* First so that it has value 0. */
