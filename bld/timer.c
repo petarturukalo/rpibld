@@ -51,7 +51,7 @@ static struct periph_access timer_access = {
 /* Convert milliseconds to microseconds. */
 #define ms_to_us(ms) ms*COUNTER_CLK_CPMS
 
-static bool queued_timer_irq_serviced;
+static volatile bool queued_timer_irq_serviced;
 
 /*
  * Queue an interrupt request on system timer channel 1 to trigger at a 
