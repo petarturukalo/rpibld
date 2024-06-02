@@ -92,8 +92,8 @@ To let the bootloader know which partition to look for the image on, before comp
 set the `image_partition` variable in the `Makefile` to the partition number of the image 
 partition (e.g. 3).
 
-Compile the bootloader with `make bootloader`. To cross compile configure `cross_prefix` in
-the `Makefile` beforehand. 
+Compile the bootloader with `make bootloader`. By default it is configured to cross compile using
+`arm-none-eabi-gcc`, but this can be changed via the `cross_prefix` variable in the `Makefile`.
 
 Install the bootloader on your SD card by first mounting its `/boot` partition on `mnt-boot`,
 and then running `make install`. WARNING this will also install the minimum set of boot files 
