@@ -1,21 +1,21 @@
 # Copyright (C) 2023 Petar Turukalo
 # SPDX-License-Identifier: GPL-2.0
 
-srcs=$(shell find bld -name '*.[cS]' -print)
-objs=$(patsubst %.c, %.o, $(srcs))
-objs:=$(patsubst %.S, %.o, $(objs))
-deps=$(patsubst %.o, %.d, $(objs))
+srcs = $(shell find bld -name '*.[cS]' -print)
+objs = $(patsubst %.c, %.o, $(srcs))
+objs := $(patsubst %.S, %.o, $(objs))
+deps = $(patsubst %.o, %.d, $(objs))
 # Cross compilation prefix.
-cross_prefix=arm-none-eabi-
-linker_script=boot.ld
+cross_prefix = arm-none-eabi-
+linker_script = boot.ld
 # The MBR primary partition that the imager imaged and that the
 # bootloader will load the OS from.
-image_partition=
-CFLAGS=-c -march=armv7ve -Wunused -iquote include -ffreestanding
+image_partition = 
+CFLAGS = -c -march=armv7ve -Wunused -iquote include -ffreestanding
 ifdef image_partition
-CFLAGS+=-DIMAGE_PARTITION=$(image_partition)
+CFLAGS += -DIMAGE_PARTITION=$(image_partition)
 endif
-LDFLAGS=-T $(linker_script) -nostdlib
+LDFLAGS = -T $(linker_script) -nostdlib
 
 bootloader: bld/bootloader.elf
 	$(cross_prefix)objcopy -O binary $< $@
