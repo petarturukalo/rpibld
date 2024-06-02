@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: GPL-2.0
 
 srcs = $(shell find bld -name '*.[cS]' -print)
-objs = $(patsubst %.c, %.o, $(srcs))
-objs := $(patsubst %.S, %.o, $(objs))
-deps = $(patsubst %.o, %.d, $(objs))
+objs = $(patsubst %.c,%.o,$(srcs))
+objs := $(patsubst %.S,%.o,$(objs))
+deps = $(patsubst %.o,%.d,$(objs))
 # Cross compilation prefix.
 cross_prefix = arm-none-eabi-
 linker_script = boot.ld
