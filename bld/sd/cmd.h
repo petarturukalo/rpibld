@@ -152,7 +152,7 @@ enum cmd_error sd_issue_cmd13(int rca, struct card_status *cs_out);
 enum cmd_error sd_issue_acmd6(int rca, bool four_bit);
 
 /*
- * Read a single block (CMD17) or multiple blocks (CMD18) of size READ_BLKSZ 
+ * Read a single block (CMD17) or multiple blocks (CMD18) of size SD_BLKSZ 
  * from the SD card into RAM.
  *
  * @ram_dest_addr: 4-byte aligned destination address in RAM to copy read data to
