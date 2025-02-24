@@ -9,30 +9,20 @@
 #include "../debug.h"
 #include "sd_blksz.h"
 
-/*
- * Arguments used by some addressed commands requiring
- * a relative card address as input.
+/**
+ * @brief Arguments used by some addressed commands requiring
+ *	  a relative card address as input.
  */
 struct ac_rca_args {
 	bits_t unused : 16;
 	bits_t rca : 16;
 } __attribute__((packed));
 
-/*
- * @CMD_TYPE_BC: broadcast: command is broadcast to all cards.
- *	Doesn't expect a response.
- * @CMD_TYPE_BCR: broadcast response: command is broadcast to all cards.
- *	 Does expect a response.
- * @CMD_TYPE_AC: addressed command: command is sent to an addressed card.
- *	No data transfer.
- * @CMD_TYPE_ADTC: addressed data transfer command: command is sent to an
- *	addressed card. Transfers data.
- */
 enum cmd_type {
-	CMD_TYPE_BC,
-	CMD_TYPE_BCR,
-	CMD_TYPE_AC,
-	CMD_TYPE_ADTC
+	CMD_TYPE_BC,  /**< Broadcast: command is broadcast to all cards. Doesn't expect a response. */
+	CMD_TYPE_BCR, /**< Broadcast response: command is broadcast to all cards. Does expect a response. */
+	CMD_TYPE_AC,  /**< Addressed command: command is sent to an addressed card. No data transfer. */
+	CMD_TYPE_ADTC /**< Addressed data transfer command: command is sent to an addressed card. Transfers data. */
 };
 
 enum cmd_response {
@@ -45,8 +35,8 @@ enum cmd_response {
 	CMD_RESPONSE_R7_CARD_INTERFACE_CONDITION,
 };
 
-/*
- * A command to control the SD card.
+/**
+ * @brief A command to control the SD card.
  */
 struct command {
 	enum cmd_index index;
@@ -54,7 +44,7 @@ struct command {
 	enum cmd_response response;
 };
 
-/* List of implemented SD commands. */
+/** @brief List of implemented SD commands. */
 static struct command commands[] = {
 	{ CMD_IDX_GO_IDLE_STATE,       CMD_TYPE_BC,   CMD_RESPONSE_NONE },
 	{ CMD_IDX_ALL_SEND_CID,        CMD_TYPE_BCR,  CMD_RESPONSE_R2_CID_OR_CSD_REG },
@@ -83,7 +73,7 @@ static struct command *get_command(enum cmd_index idx)
 	return NULL;
 }
 
-/* 
+/**
  * Set cmdtm response type from the command's response. The term "response type" is used
  * in the spec but the differentiating factor here is really response size (in bits).
  */
@@ -108,7 +98,7 @@ static void set_cmdtm_response_type(struct command *cmd, struct cmdtm *cmdtm)
 	}
 }
 
-/* 
+/**
  * Set index check enable and CRC check enable from response.
  * If a case doesn't set one of these it means it's supposed to be disabled
  * (and it's already been disabled from zeroing).
@@ -132,7 +122,7 @@ static void set_cmdtm_idx_and_crc_chk(struct command *cmd, struct cmdtm *cmdtm)
 	}
 }
 
-/* 
+/**
  * Set the fields of the transfer mode register relevant to the command.
  * The transfer mode register is the lower 16 bits of cmdtm.
  */
@@ -148,7 +138,7 @@ static void set_cmdtm_transfer_mode(struct command *cmd, struct cmdtm *cmdtm)
 	}
 }
 
-/*
+/**
  * Set the fields of the cmdtm register required to issue the
  * given command.
  */
@@ -168,7 +158,7 @@ static void set_cmdtm(struct command *cmd, struct cmdtm *cmdtm)
 	set_cmdtm_transfer_mode(cmd, cmdtm);
 }
 
-/* 
+/**
  * If the return is zero then timed out waiting for any interrupt.
  */
 static struct interrupt sd_wait_for_any_interrupt(void)
@@ -193,9 +183,9 @@ static struct interrupt sd_wait_for_any_interrupt(void)
 	return irpt;
 }
 
-/*
- * Wait for a particular interrupt. 
- * @interrupt: bit mask for the interrupt's field in the INTERRUPT register
+/**
+ * @brief Wait for a particular interrupt. 
+ * @param interrupt_mask Bit mask for the interrupt's field in the INTERRUPT register
  */
 enum cmd_error sd_wait_for_interrupt(int interrupt_mask)
 {
@@ -228,8 +218,8 @@ static bool sd_cmd_has_card_status_response(struct command *cmd)
 	       cmd->response == CMD_RESPONSE_R1B_NORMAL_BUSY;
 }
 
-/*
- * Get whether at least one error bit in the card status is set high.
+/**
+ * @brief Get whether at least one error bit in the card status is set high.
  */
 static bool sd_card_status_error_bit_set(struct card_status *cs)
 {
@@ -479,7 +469,7 @@ enum cmd_error sd_issue_acmd6(int rca, bool four_bit)
 	return sd_issue_acmd(ACMD_IDX_SET_BUS_WIDTH, cast_bitfields(args, uint32_t), rca);
 }
 
-/* Set block size and block count for data transfer. */
+/** @brief Set block size and block count for data transfer. */
 static void set_blkszcnt(int blksz, int blkcnt)
 {
 	struct blksizecnt blkszcnt;

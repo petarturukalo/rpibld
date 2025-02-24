@@ -5,7 +5,7 @@
 #ifndef GIC_H
 #define GIC_H
 
-/*
+/**
  * Whether to use the GIC-400 interrupt controller in this
  * bootloader. If set enable_gic=1 must also be set in
  * config.txt for the ARM stub to initialise the GIC.

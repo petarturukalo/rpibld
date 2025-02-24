@@ -18,7 +18,7 @@ int Strlen(char *s)
 	return n;
 }
 
-/*
+/**
  * Like the regular strncpy() except returns the number of bytes 
  * copied instead.
  */
@@ -29,8 +29,8 @@ static int Strncpy(char *dst, char *src, int n)
 	return n;
 }
 
-/*
- * Reverse a string, in-place.
+/**
+ * @brief Reverse a string, in-place.
  */
 static void strreverse(char *s)
 {
@@ -54,7 +54,7 @@ static int char_digit_to_int(char digit)
 #define HEX_BASE 16
 static const char hex_digits[] = "0123456789abcdef";
 
-/*
+/**
  * Convert a decimal integer into a string representation
  * of that integer, in either the same (decimal) or different
  * base. Max supported base is hexadecimal.
@@ -101,10 +101,10 @@ static int str_to_int(char *s, int len)
 	return n;
 }
 
-/*
- * Return a pointer to the first occurrence of
- * a character in a string, or NULL for no such
- * occurrence.
+/**
+ * @return A pointer to the first occurrence of
+ *	   a character in a string, or NULL for no such
+ *	   occurrence.
  */
 static char *str_find(char *s, char c)
 {
@@ -116,10 +116,10 @@ static char *str_find(char *s, char c)
 	return NULL;
 }
 
-/*
- * Return the index of the first character in the string
- * that isn't in the "set" of characters, or -1 for no
- * such character.
+/**
+ * @return The index of the first character in the string
+ *	   that isn't in the "set" of characters, or -1 for no
+ *	   such character.
  */
 static int str_find_char_not_in_set(char *s, char *set)
 {
@@ -135,15 +135,15 @@ static bool specifier_supports_field_width(char spec)
 	return spec == 'u' || spec == 'x';
 }
 
-/* 
+/**
  * Similar to the regular vsnprintf() (see its man page for more info),
  * except this version only supports limited functionality in comparison.
  * See the comment at debug.h:serial_log() for what this implements.
  * The last available byte will always be NULL terminated.
  *
- * WARNING if arguments are misused or wrong, e.g. if there's an unsupported 
- * or unfinished conversion specifier in the format string, etc., then this 
- * function fails and signals error ERROR_VSNPRINTF.
+ * @warning If arguments are misused or wrong, e.g. if there's an unsupported 
+ *	    or unfinished conversion specifier in the format string, etc., then this 
+ *	    function fails and signals error ERROR_VSNPRINTF.
  */
 static void Vsnprintf(char *s, int n, char *fmt, va_list ap)
 {

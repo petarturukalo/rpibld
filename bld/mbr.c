@@ -32,8 +32,8 @@ bool mbr_partition_valid(int partition)
 	return partition >= MBR_FIRST_PART_NR && partition <= MBR_LAST_PART_NR;
 }
 
-/*
- * Get the value of a 32-bit partition entry field.
+/**
+ * @brief Get the value of a 32-bit partition entry field.
  */
 static uint32_t mbr_get_part_entry_field(byte_t *mbr_base_addr, int partition, int field_offset)
 {

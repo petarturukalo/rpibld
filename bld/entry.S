@@ -86,8 +86,7 @@ asm_entry:
 
 /*
  * Set r0, r1, r2 required to boot ARM Linux, and then boot it.
- * 
- * @r3: kernel address to jump to
+ * Expects kernel address to jump to in r3.
  */
 _boot_kernel:
 	mov r0, #0

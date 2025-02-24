@@ -14,18 +14,23 @@
 #define IMG_MAGIC 0xF00BA12
 
 enum item_id {
-	ITEM_ID_END,  /* First so that it has value 0. */
+	ITEM_ID_END,  /**< First so that it has value 0. */
 	ITEM_ID_KERNEL,
 	ITEM_ID_DEVICE_TREE_BLOB
 };
 
-/*
- * Storage for arbitrary data.
+/**
+ * @struct item
+ * @brief Storage for arbitrary data.
  *
- * @id: enum item_id identifier for what is stored in the data field
- * @datasz: size of the data stored in the data field, in bytes, including
- *	SD block size alignment padding bytes
+ * @var item::id 
+ * Enum item_id identifier for what is stored in the data field.
  *
+ * @var item::datasz 
+ * Size of the data stored in the data field, in bytes, including SD block size 
+ * alignment padding bytes.
+ *
+ * @var item::data
  * The data field shall be padded to align the size of this to SD_BLKSZ so that
  * the item after it in an image is at the start of a block (assuming this item 
  * is at the start of a block also). This does not have an aligned attribute 
@@ -38,19 +43,24 @@ struct item {
 	uint8_t data[];
 };
 
-/*
+/**
+ * @struct image
  * A packed/serialised representation of the OS files and data required
  * to boot it. This is stored at the very start of a primary partition
  * on a block device formatted with a MBR partition table.
  *
- * @magic: used to verify the start of the image after having loaded it from
- *	secondary storage. This will have value IMG_MAGIC.
- * @imgsz: size of the entire image in bytes, including the last zero item, etc.
- * @items: the separate OS files/data stored in the image. This is terminated
- *	by an item with ID ITEM_ID_END (its data size shall be 0).
- *	All items start at an offset that is a multiple of SD_BLKSZ, meaning each
- *	appears at the start of a block/LBA, and is able to be addressed by a
- *	SD read operation.
+ * @var image::magic 
+ * Used to verify the start of the image after having loaded it from secondary 
+ * storage. This will have value IMG_MAGIC.
+ *
+ * @var image::imgsz 
+ * Size of the entire image in bytes, including the last zero item, etc.
+ *
+ * @var image::items
+ * The separate OS files/data stored in the image. This is terminated by an item 
+ * with ID ITEM_ID_END (its data size shall be 0). All items start at an offset 
+ * that is a multiple of SD_BLKSZ, meaning each appears at the start of a block/LBA, 
+ * and is able to be addressed by a SD read operation.
  */
 struct image {
 	uint32_t magic;

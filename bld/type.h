@@ -12,7 +12,7 @@ typedef char byte_t;
 #include <stdbool.h>
 #include <stddef.h>  /* For NULL. */
 
-/* 
+/**
  * Cast a struct variable containing only bitfields to an integral type of the
  * the same size as the struct. E.g. use this to cast a struct with
  * four 8-bit fields to a uint32_t.

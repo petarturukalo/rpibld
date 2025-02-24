@@ -28,13 +28,13 @@
 extern void vector_table(void);
 extern void vector_table_pool_end(void);
 
-/* Move vector table to very start of RAM (address 0x0) to set up exception vectors/handlers. */
+/** @brief Move vector table to very start of RAM (address 0x0) to set up exception vectors/handlers. */
 static void install_vector_table(void)
 {
 	mcopy(vector_table, (byte_t *)0x0, vector_table_pool_end-vector_table);
 }
 
-/* Enable interrupts and initialise peripherals. */
+/** @brief Enable interrupts and initialise peripherals. */
 static void init_peripherals(void)
 {
 	enum sd_init_error error;
@@ -54,7 +54,7 @@ static void init_peripherals(void)
 	}
 }
 
-/* Disable interrupts and reset the peripherals initialised in init_peripherals(). */
+/** @brief Disable interrupts and reset the peripherals initialised in init_peripherals(). */
 static void reset_peripherals(void)
 {
 	if (!sd_reset()) {
@@ -69,9 +69,9 @@ static void reset_peripherals(void)
 #endif
 }
 
-/*
- * Load MBR from first block on SD card into RAM.
- * Return the start address of the MBR in RAM on success.
+/**
+ * @brief Load MBR from first block on SD card into RAM.
+ * @return The start address of the MBR in RAM on success.
  */
 static byte_t *load_mbr(void)
 {
@@ -94,9 +94,9 @@ static byte_t *load_mbr(void)
 	return mbr_base_addr;
 }
 
-/*
- * Load the start of the image from the image partition into RAM.
- * Return the logical block address (LBA) of the image partition on success.
+/**
+ * @brief Load the start of the image from the image partition into RAM.
+ * @return The logical block address (LBA) of the image partition on success.
  */
 static uint32_t load_image_head(byte_t *mbr_base_addr)
 {
@@ -125,8 +125,8 @@ static uint32_t load_image_head(byte_t *mbr_base_addr)
 	return img_part_lba;
 }
 
-/*
- * Get the string name of an item which an item ID identifies.
+/**
+ * @brief Get the string name of an item which an item ID identifies.
  */
 static char *stritem(enum item_id id)
 {
@@ -145,8 +145,8 @@ static int itemsz(struct item *item)
 	return sizeof(struct item)+item->datasz;
 }
 
-/*
- * Load an image item from the SD card into RAM.
+/**
+ * @brief Load an image item from the SD card into RAM.
  */
 static struct item *load_item(enum item_id id, byte_t *ram_item_dest_addr, 
 			      uint32_t sd_item_src_lba)
@@ -173,8 +173,8 @@ static struct item *load_item(enum item_id id, byte_t *ram_item_dest_addr,
 	return item;
 }
 
-/* 
- * Load the kernel and device tree blob from the SD image into RAM. 
+/**
+ * @brief Load the kernel and device tree blob from the SD image into RAM. 
  */
 static void load_image_items(uint32_t img_part_lba)
 {
@@ -218,7 +218,7 @@ static void boot_kernel(void)
 		"hvc #0");  /* Go to hypervisor mode which will execute _boot_kernel. */
 }
 
-/*
+/**
  * Entry point to the C code, the function branched to when switching from 
  * the assembly init code to C.
  */

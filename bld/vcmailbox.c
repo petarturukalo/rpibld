@@ -31,21 +31,28 @@ static struct periph_access vcmailbox_access = {
 #define MBOX0_STATUS_EMPTY  BIT(30)
 
 
-/*
- * Used to request and receive properties associated with a particular tag
- * from the VideoCore.
+/**
+ * @struct tag
+ * @brief Used to request and receive properties associated with a particular tag
+ *	  from the VideoCore.
  *
- * @id: identifies which tag/property to get. Expected to store an enum tag_id.
- * @value_bufsz: size of value_buf in bytes, the greater between the bytes required 
- *	to store the request arguments and the bytes to store the response return 
- * @request/response_code: on request bit 31 should be clear. On response bit 31
- *	is set and bits 30:0 is the length of the value returned in value_buf.
- * @value_buf: when used in a request this stores the arguments input to the VC.
- *	When used in a response this stores the return value from the VC. 
- *	Both are stored at the start of this, regardless if their sizes differ, 
- *	e.g. if the args use 8 bytes and the response 4 bytes, the size of this will
- *	be 8 bytes, all 8 of which will be set to the args on request, but only the 
- *	first 4 bytes set on response (with the remaining 4 bytes unused).
+ * @var tag::id 
+ * Identifies which tag/property to get. Expected to store an enum tag_id.
+ *
+ * @var tag::value_bufsz 
+ * Size of value_buf in bytes, the greater between the bytes required to store the 
+ * request arguments and the bytes to store the response return.
+ *
+ * @var tag::request/response_code 
+ * On request bit 31 should be clear. On response bit 31 is set and bits 30:0 is the 
+ * length of the value returned in value_buf.
+ *
+ * @var tag::value_buf 
+ * When used in a request this stores the arguments input to the VC. When used in a response 
+ * this stores the return value from the VC. Both are stored at the start of this, regardless 
+ * if their sizes differ, e.g. if the args use 8 bytes and the response 4 bytes, the size of 
+ * this will be 8 bytes, all 8 of which will be set to the args on request, but only the first 
+ * 4 bytes set on response (with the remaining 4 bytes unused).
  */
 struct tag {
 	uint32_t id;
@@ -61,14 +68,20 @@ struct tag {
 /* See bit 31 of tag.response_code documentation above. */
 #define TAG_RESPONSE_CODE_RESPONSE  BIT(31)
 
-/*
+/**
+ * @struct property_buffer
  * Buffer used to request/receive properties from the VideoCore. 
  * Only to be used with channel CHANNEL_PROPERTY.
  *
- * @bufsz: size of this
- * @request/response_code: 0 on request. Bit 31 set on response with bit 0 identifying
- *	whether an error occurred: 0 for success, 1 for error.
- * @tags: list of properties/tags to get. This should be terminated with a zeroed uint32_t.
+ * @var property_buffer::bufsz
+ * Size of this.
+ *
+ * @var property_buffer::request/response_code 
+ * 0 on request. Bit 31 set on response with bit 0 identifying	whether an error 
+ * occurred: 0 for success, 1 for error.
+ *
+ * @var property_buffer::tags 
+ * List of properties/tags to get. This should be terminated with a zeroed uint32_t.
  */
 struct property_buffer {
 	uint32_t bufsz;
@@ -84,14 +97,15 @@ struct property_buffer {
 /* See bit 0 of property_buffer.response_code documentation above. */
 #define PROP_RESPONSE_CODE_ERROR     BIT(0)
 
-/*
- * Defines the type of a message sent through the VideoCore mailbox.
- *
- * @CHANNEL_PROPERTY: channel for the ARM to request properties/tags from
- *	the VideoCore. The data both sent and returned with this is a 16-byte aligned 
- *	address (i.e. the 4 least significant bits are clear) to a struct property_buffer.
+/**
+ * @brief Defines the type of a message sent through the VideoCore mailbox.
  */
 enum channel {
+	/**
+	 * Channel for the ARM to request properties/tags from the VideoCore. 
+	 * The data both sent and returned with this is a 16-byte aligned address 
+	 * (i.e. the 4 least significant bits are clear) to a struct property_buffer.
+	 */
 	CHANNEL_PROPERTY = 8
 };
 
@@ -105,11 +119,11 @@ static bool mbox1_status_full_flag_set(void)
 	return register_get(&vcmailbox_access, MBOX1_STATUS)&MBOX1_STATUS_FULL;
 }
 
-/*
- * Write/send a message to the VideoCore.
- * @data: data in which the message encapsulates. The meaning of this is dependent
- *	on the channel being used (see enum channel for more info). Only the 28 most
- *	significant bits of this is used.
+/**
+ * @brief Write/send a message to the VideoCore.
+ * @param data Data in which the message encapsulates. The meaning of this is dependent
+ *	       on the channel being used (see enum channel for more info). Only the 28 most
+ *             significant bits of this is used.
  */
 static void vcmailbox_write_message(uint32_t data, enum channel chan)
 {
@@ -126,10 +140,10 @@ static bool mbox0_status_empty_flag_set(void)
 	return register_get(&vcmailbox_access, MBOX0_STATUS)&MBOX0_STATUS_EMPTY;
 }
 
-/*
- * Read a response message to the most recent vcmailbox_write_message().
- * Returns the response data in the 28 most significant bits and the channel 
- * in the 4 least significant bits.
+/**
+ * @brief Read a response message to the most recent vcmailbox_write_message().
+ * @return The response data in the 28 most significant bits and the channel 
+ *	   in the 4 least significant bits.
  */
 static uint32_t vcmailbox_read_message(void)
 {
@@ -141,8 +155,8 @@ static uint32_t vcmailbox_read_message(void)
 	return register_get(&vcmailbox_access, MBOX0_READ);
 }
 
-/*
- * Return addr aligned to the nearest n-byte aligned address greater than or equal to itself.
+/**
+ * @return addr aligned to the nearest n-byte aligned address greater than or equal to itself.
  */
 static void *align_address(void *addr, int n)
 {
@@ -151,13 +165,13 @@ static void *align_address(void *addr, int n)
 	return addr;
 }
 
-/*
- * Build up a variable-sized tag.
+/**
+ * @brief Build up a variable-sized tag.
  *
- * @tag: heap address of tag to build up
- * @tag_request: used to build up the tag
+ * @param tag Heap address of tag to build up
+ * @param tag_request Used to build up the tag
  *
- * Return the size of the built tag in bytes.
+ * @return The size of the built tag in bytes.
  */
 static int build_tag(struct tag *tag, struct tag_request *req)
 {
@@ -179,7 +193,7 @@ static int build_tag(struct tag *tag, struct tag_request *req)
 	return tag_end - (byte_t *)tag;
 }
 
-/*
+/**
  * Build up a property buffer on the heap and return the address to it.
  * The heap is used because the property buffer and tags are variable size 
  * dependent on which and how many tags are selected.
@@ -210,8 +224,8 @@ static struct property_buffer *build_property_buffer(struct tag_request *tag_req
 	return prop;
 }
 
-/*
- * Copy the tag responses into the user's output buffers.
+/**
+ * @brief Copy the tag responses into the user's output buffers.
  */
 static enum vcmailbox_error return_tag_responses(struct property_buffer *prop, 
 						 struct tag_request *tag_requests, int n)

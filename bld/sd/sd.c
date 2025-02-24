@@ -43,23 +43,22 @@ enum card_state {
 	CARD_STATE_DISCONNECT
 };
 
-/*
- * Card (SD card) metadata and bookkeeping data.
- *
- * @state: the card's current state
- * @sdhc_or_sdxc: whether the card is either of SDHC (high capacity) or SDXC
- *	(extended capacity). If false the card is SDSC (standard capacity).
- * @rca: card's relative card address
+/**
+ * @brief Card (SD card) metadata and bookkeeping data.
  */
 struct card {
-	enum card_state state;
-	bool sdhc_or_sdxc;
-	int rca;
+	enum card_state state;  /**< The card's current state */
+	/** 
+	 * Whether the card is either of SDHC (high capacity) or SDXC (extended capacity). 
+	 * If false the card is SDSC (standard capacity). 
+	 */
+	bool sdhc_or_sdxc;  
+	int rca;  /**< Card's relative card address */
 	bool cmd23_supported;
 };
 
-/*
- * Assert that the EMMC2 base clock has a clock rate of EMMC2_EXPECTED_BASE_CLOCK_HZ.
+/**
+ * @brief Assert that the EMMC2 base clock has a clock rate of EMMC2_EXPECTED_BASE_CLOCK_HZ.
  */
 static void sd_assert_base_clock(void)
 {
@@ -79,9 +78,9 @@ static void sd_assert_base_clock(void)
 	}
 }
 
-/*
- * Assert that the supply for the bus IO line power is 3.3V (the expected voltage
- * after a power cycle).
+/**
+ * @brief Assert that the supply for the bus IO line power is 3.3V (the expected voltage
+ *	  after a power cycle).
  */
 static void sd_assert_voltage(void)
 {
@@ -102,8 +101,8 @@ static void sd_assert_voltage(void)
 	}
 }
 
-/*
- * Assert that the card is supplied power. 
+/**
+ * @brief Assert that the card is supplied power. 
  */
 static void sd_assert_card_power(void)
 {	
@@ -123,9 +122,9 @@ static void sd_assert_card_power(void)
 	}
 }
 
-/*
- * Assert that the VideoCore firmware which loaded this bootloader program set up
- * the MMC controller as expected.
+/**
+ * @brief Assert that the VideoCore firmware which loaded this bootloader program set up
+ *	  the MMC controller as expected.
  *
  * Signal error with error ERROR_VC_NOT_INIT_MMC if the assertion fails.
  */
@@ -141,7 +140,7 @@ static bool sd_sw_reset_hc_bit_set(void)
 	return register_get(&sd_access, CONTROL1)&CONTROL1_SW_RESET_HC;
 }
 
-/*
+/**
  * Reset the entire host controller. Clears register bits, so needs to be
  * called before any other initialisation. 
  */
@@ -151,8 +150,8 @@ static void sd_reset_host(void)
 	while_cond_timeout_infinite(sd_sw_reset_hc_bit_set, 20);
 }
 
-/*
- * Supply 3.3V SD bus power.
+/**
+ * @brief Supply 3.3V SD bus power.
  *
  * This was the final (undocumented, and so took forever to find) piece 
  * to the SD puzzle, required to be able to receive a command complete
@@ -165,7 +164,7 @@ static void sd_supply_bus_power(void)
 	register_enable_bits(&sd_access, CONTROL0, pwr_ctl_bits<<CONTROL0_PWR_CTL_SHIFT);
 }
 
-/*
+/**
  * Get the 8-bit clock divider which when used in the clock control register
  * SDCLK frequency select field results in the base clock being divided to
  * a clock rate <= the target clock rate.
@@ -189,8 +188,8 @@ static bool sd_internal_clock_not_stable(void)
 	return !(register_get(&sd_access, CONTROL1)&CONTROL1_INT_CLK_STABLE);
 }
 
-/*
- * Supply the clock at the given clock rate (in Hz) to the card.
+/**
+ * @brief Supply the clock at the given clock rate (in Hz) to the card.
  */
 static void sd_supply_clock(int clock_rate)
 {
@@ -255,8 +254,8 @@ static void sd_enable_transfer_interrupts(void)
 	sd_enable_interrupts(irpt);
 }
 
-/*
- * Do all of the intialisation needed to issue a command successfully.
+/**
+ * @brief Do all of the intialisation needed to issue a command successfully.
  */
 static void sd_pre_cmd_init(void)
 {
@@ -271,7 +270,7 @@ static void sd_pre_cmd_init(void)
 	sd_enable_cmd_interrupts();
 }
 
-/*
+/**
  * Go through the card intialisation and identification process, moving the card
  * from the start of card identification mode to the start of data transfer mode.
  */

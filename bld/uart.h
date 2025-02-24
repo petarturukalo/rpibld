@@ -18,7 +18,7 @@
 #ifndef UART_H
 #define UART_H
 
-/*
+/**
  * Initialise the mini UART for transmission on GPIO pin 14.
  *
  * The UART is initialised with the following parameters (115,200 8N1), 
@@ -31,10 +31,10 @@
  */
 void uart_init(void);
 
-/*
- * Transmit n bytes of data over the mini UART.
- * A single call to uart_init() must have been made before
- * any call to this.
+/**
+ * @brief Transmit n bytes of data over the mini UART.
+ *
+ * A single call to uart_init() must have been made before any call to this.
  */
 void uart_transmit(void *data, int n);
 

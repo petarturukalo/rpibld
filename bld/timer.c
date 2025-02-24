@@ -8,7 +8,7 @@
 #include "gic.h"
 #include "bits.h"
 
-/*
+/**
  * Timer channels 0 and 2 are supposedly used by the VPU so only
  * 1 and 3 should be used here. I say supposedly because I couldn't
  * find it mentioned in any technical documentation (e.g. the BCM2711 
@@ -40,7 +40,7 @@ static struct periph_access timer_access = {
 #define CS_MATCH1  BIT(1)
 
 
-/*
+/**
  * Cycles per millisecond of the clock driving the system timer's free
  * running counter. This is the number of ticks the counter will be incremented
  * each millisecond. (Note this is derived from the BCM2711 RPI 4 B device tree 
@@ -48,14 +48,14 @@ static struct periph_access timer_access = {
  * is 1 MHz.)
  */
 #define COUNTER_CLK_CPMS 1000
-/* Convert milliseconds to microseconds. */
+/** @brief Convert milliseconds to microseconds. */
 #define ms_to_us(ms) ms*COUNTER_CLK_CPMS
 
 static volatile bool queued_timer_irq_serviced;
 
-/*
- * Queue an interrupt request on system timer channel 1 to trigger at a 
- * microseconds amount of time after the current time. 
+/**
+ * @brief Queue an interrupt request on system timer channel 1 to trigger at a 
+ *	  microseconds amount of time after the current time. 
  *
  * Only one interrupt can be "queued" at a time. If a second call is made 
  * to this without the first triggering an interrupt, the first queued interrupt 
@@ -73,8 +73,8 @@ static void timer_queue_irq(int microseconds)
 	register_set(&timer_access, C1, current_ticks + microseconds);
 }
 
-/*
- * Service an interrupt request on system timer channel 1 by clearing the interrupt.
+/**
+ * @brief Service an interrupt request on system timer channel 1 by clearing the interrupt.
  */
 void timer_isr(void)
 {	

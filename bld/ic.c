@@ -67,7 +67,7 @@ static struct periph_access armc_access = {
  */
 #define IRQ_INT63_32_EMMC2  BIT(30)
 
-/* Interrupt request. */
+/** @brief Interrupt request. */
 enum irq {
 	IRQ_UNIMPLEMENTED,
 	/* VideoCore interrupts. */

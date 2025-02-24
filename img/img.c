@@ -26,8 +26,9 @@ static void print_usage(void)
 	       "Use arg -h or --help to print this message again.\n");
 }
 
-/*
- * Get the size of a file in bytes. Return -1 on error.
+/**
+ * @brief Get the size of a file in bytes. 
+ * @return -1 on error
  */
 static int filesz(int fd)
 {
@@ -38,8 +39,8 @@ static int filesz(int fd)
 	return stat.st_size;
 }
 
-/*
- * Free a pointer and set it to NULL if it's not NULL.
+/**
+ * @brief Free a pointer and set it to NULL if it's not NULL.
  */
 static void freep(void **ptr)
 {
@@ -51,11 +52,11 @@ static void freep(void **ptr)
 /* So caller doesn't have to explicitly cast. */
 #define freep(p) freep((void **)p)
 
-/*
- * Read the contents of a file into a dynamically allocated string.
- * Return NULL on error.
+/**
+ * @brief Read the contents of a file into a dynamically allocated string.
+ * @return NULL on error
  *
- * @fsz_out: out-param size of the file in bytes
+ * @param[out] fsz_out Size of the file in bytes
  */
 static char *file_read(char *fpath, int *fsz_out)
 {
@@ -94,7 +95,7 @@ file_read_cleanup0:
 	return mem;
 }
 
-/*
+/**
  * Round a number n up to the nearest multiple of m.
  * If n is already a multiple of m it is not rounded up.
  */
@@ -103,10 +104,10 @@ static int round_up_multiple(int n, int m)
 	return n%m ? n+(m-(n%m)) : n;
 }
 
-/*
- * Append an item to the image.
+/**
+ * @brief Append an item to the image.
  *
- * @img: dynamically allocated address of image
+ * @param img Dynamically allocated address of image
  *
  * Uses realloc() to get new space for the item, so the return is the (potentially) 
  * new start address of the image. Return NULL on error.
@@ -136,10 +137,10 @@ static struct image *image_append_item(struct image *img, enum item_id id, int d
 	return img;
 }
 
-/*
- * Append the contents of a file as an item to the image.
+/**
+ * @brief Append the contents of a file as an item to the image.
  *
- * See image_append_item() for @img and return.
+ * @see image_append_item() for `img` param and return.
  */
 static struct image *image_append_file(struct image *img, char *fpath, enum item_id id)
 {
@@ -154,13 +155,13 @@ static struct image *image_append_file(struct image *img, char *fpath, enum item
 	return img;
 }
 
-/*
- * Write a memory area to a file.
+/**
+ * @brief Write a memory area to a file.
  *
- * @mem: memory area
- * @n: size of the memory area in bytes
+ * @param mem Memory area
+ * @param n Size of the memory area in bytes
  *
- * Return whether successful.
+ * @return Whether successful.
  */
 static bool file_write(char *fpath, char *mem, int n)
 {
@@ -188,7 +189,7 @@ static bool file_write(char *fpath, char *mem, int n)
 	return true;
 }
 
-/*
+/**
  * Same as image_append_file() but free the input image if the append fails
  * (the realloc() failing specifically but something else might have failed instead).
  */
@@ -204,8 +205,8 @@ static struct image *image_append_file_free_on_fail(struct image *img, char *fpa
 	return new_img;
 }
 
-/*
- * Build an image out of a kernel and device tree blob files.
+/**
+ * @brief Build an image out of a kernel and device tree blob files.
  */
 static struct image *build_image(char *kern_fpath, char *dtb_fpath)
 {
@@ -231,8 +232,8 @@ static struct image *build_image(char *kern_fpath, char *dtb_fpath)
 	return new_img;
 }
 
-/*
- * Get whether any command line argument is a help argument -h or --help.
+/**
+ * @brief Get whether any command line argument is a help argument -h or --help.
  */
 static bool any_arg_is_help(int argc, char *argv[])
 {
@@ -243,7 +244,7 @@ static bool any_arg_is_help(int argc, char *argv[])
 	return false;
 }
 
-/*
+/**
  * Write an image containing a kernel and device tree files (in that order)
  * to the start of a block device partition for a MBR primary partition.
  */

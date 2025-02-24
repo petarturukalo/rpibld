@@ -9,7 +9,7 @@
 #define IC_H
 
 void ic_enable_interrupts(void);
-/* Disable all the interrupts enabled in ic_enable_interrupts(). */
+/** @brief Disable all the interrupts enabled in ic_enable_interrupts(). */
 void ic_disable_interrupts(void);
 void ic_irq_exception_handler(void);
 

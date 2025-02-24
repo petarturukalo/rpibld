@@ -12,7 +12,7 @@ enum gpio_pin {
 	GPIO_PIN_LED  = 42
 };
 
-/* GPIO pin operation. */
+/** @brief GPIO pin operation. */
 enum gpio_op {
 	GPIO_OP_INPUT    = 0b000,
 	GPIO_OP_OUTPUT   = 0b001,
@@ -25,8 +25,8 @@ enum gpio_op {
 	GPIO_OP_ALT_FN_5 = 0b010
 };
 
-/*
- * Select a GPIO pin's operation.
+/**
+ * @brief Select a GPIO pin's operation.
  */
 void gpio_pin_select_op(enum gpio_pin pin, enum gpio_op op);
 

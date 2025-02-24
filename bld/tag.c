@@ -66,7 +66,7 @@ uint32_t tag_clock_get_rate(uint32_t clk_id)
 /* Pin number of the GPIO expander BT_ON pin in the VideoCore device tree. */
 #define GPIO_EXPANDER_VC_PIN_BASE 128
 
-/*
+/**
  * Convert the input GPIO expander pin number to a GPIO expander pin number that 
  * the VideoCore knows about. These are pins starting at GPIO_EXPANDER_VC_PIN_BASE.
  */

@@ -10,7 +10,7 @@
 
 #include "mmio.h"
 
-/*
+/**
  * Get the base address of the heap. There is currently
  * no allocation / memory management implemented - it is 
  * up to the callers (me) to ensure it is used asynchronously.

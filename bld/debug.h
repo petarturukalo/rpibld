@@ -7,7 +7,7 @@
 #ifndef DEBUG_H
 #define DEBUG_H
 
-/*
+/**
  * Log the output of a printf style formatted string over the mini UART 
  * serial connection. The output is prefixed with a timestamp and suffixed 
  * with a newline, e.g. "[<time>] <output>\r\n".
