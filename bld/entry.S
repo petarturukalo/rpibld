@@ -71,8 +71,8 @@ asm_entry:
 	bic r0, r0, #CPSR_MODE      /* Zero mode bits. */
 	orr r0, r0, #CPSR_MODE_SVC  /* Set mode to supervisor. */
 	msr spsr_hyp, r0            /* Hyp eret loads spsr from spsr_hyp. */
-	msr elr_hyp, pc		    /* Return to instruction after eret. */
-	eret			    /* Hyp substitutes eret with load pc from elr_hyp. */
+	msr elr_hyp, pc             /* Return to instruction after eret. */
+	eret                        /* Hyp substitutes eret with load pc from elr_hyp. */
 
 	/* 
 	 * Set up stacks for the C code. 
@@ -126,14 +126,14 @@ irq_exception_handler:
 
 /* Vector table that will be moved to the very start of RAM (address 0x0). */
 vector_table:
-	nop				/* 0x00: reset. */
-	nop				/* 0x04: undefined instruction. */
-	nop				/* 0x08: supervisor / SMC. */
-	nop				/* 0x0c: prefetch abort. */
-	nop				/* 0x10: data abort. */
-	ldr pc, =_boot_kernel		/* 0x14: hypervisor. */
-	ldr pc, =irq_exception_handler	/* 0x18: IRQ. */
-	nop				/* 0x1c: FIQ. */
+	nop                             /* 0x00: reset. */
+	nop                             /* 0x04: undefined instruction. */
+	nop                             /* 0x08: supervisor / SMC. */
+	nop                             /* 0x0c: prefetch abort. */
+	nop                             /* 0x10: data abort. */
+	ldr pc, =_boot_kernel           /* 0x14: hypervisor. */
+	ldr pc, =irq_exception_handler  /* 0x18: IRQ. */
+	nop                             /* 0x1c: FIQ. */
 .pool
 vector_table_pool_end:
 	nop

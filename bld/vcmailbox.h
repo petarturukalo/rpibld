@@ -44,11 +44,11 @@ enum vcmailbox_error {
  * @brief Data used to request a tag.
  */
 struct tag_request {
-	enum tag_id id;	/**< ID of tag to request */
-	void *args;	/**< Arguments input to the request */
-	int args_sz;	/**< Size of args buffer */
-	void *ret;	/**< Where to store output of the request */
-	int ret_sz;	/**< Size of ret buffer */
+	enum tag_id id; /**< ID of tag to request */
+	void *args;     /**< Arguments input to the request */
+	int args_sz;    /**< Size of args buffer */
+	void *ret;      /**< Where to store output of the request */
+	int ret_sz;     /**< Size of ret buffer */
 };
 
 /**

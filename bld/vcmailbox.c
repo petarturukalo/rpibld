@@ -122,7 +122,7 @@ static bool mbox1_status_full_flag_set(void)
 /**
  * @brief Write/send a message to the VideoCore.
  * @param data Data in which the message encapsulates. The meaning of this is dependent
- *	       on the channel being used (see enum channel for more info). Only the 28 most
+ *             on the channel being used (see enum channel for more info). Only the 28 most
  *             significant bits of this is used.
  */
 static void vcmailbox_write_message(uint32_t data, enum channel chan)
